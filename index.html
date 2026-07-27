@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Barcode MRP Editor - Console</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- PDF Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        :root {
+            --bg-app: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --primary: #0f172a;
+            --primary-hover: #1e293b;
+            --primary-foreground: #ffffff;
+            --success: #10b981;
+            --success-hover: #059669;
+            --success-foreground: #ffffff;
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-app);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 16px;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 16px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ----------------------------------------------------
+           SHADCN SIDEBAR PANEL
+           ---------------------------------------------------- */
+        .sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        /* ----------------------------------------------------
+           FILE PICKER
+           ---------------------------------------------------- */
+        .clipboard-board {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px;
+        }
+
+        .upload-zone {
+            background: #ffffff;
+            border: 1px dashed #cbd5e1;
+            border-radius: calc(var(--radius) - 2px);
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease-in-out;
+            min-height: 110px;
+        }
+        .upload-zone:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+        .upload-zone.drag-over {
+            background: #f1f5f9;
+            border-color: #64748b;
+        }
+
+        .upload-icon {
+            width: 28px;
+            height: 28px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .upload-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+        .upload-subtext {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Selected File Card */
+        .file-card {
+            display: flex;
+            align-items: center;
+            background: #f0fdf4; /* Light Green */
+            border: 1px solid #bbf7d0;
+            border-radius: calc(var(--radius) - 2px);
+            padding: 12px 14px;
+            position: relative;
+            animation: fadeIn 0.15s ease-out;
+            min-height: 70px;
+        }
+        .file-icon {
+            width: 24px;
+            height: 24px;
+            color: #166534;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .file-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        .file-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #166534;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-size {
+            font-size: 11px;
+            font-weight: 500;
+            color: #15803d;
+            margin-top: 1px;
+        }
+
+        /* Red clear file badge button */
+        .clear-file-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            border: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 12;
+            transition: background 0.15s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .clear-file-btn:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+        .clear-file-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ----------------------------------------------------
+           FORM CONTROLS
+           ---------------------------------------------------- */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .engraved-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: -0.01em;
+        }
+
+        .inset-input-slot {
+            position: relative;
+        }
+        .inset-input-slot input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: #ffffff;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .inset-input-slot input[type="text"]:focus {
+            border-color: #94a3b8;
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.15);
+        }
+
+        /* ----------------------------------------------------
+           ACTION BUTTONS
+           ---------------------------------------------------- */
+        .btn-group-console {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .button-module {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button.action-btn {
+            width: 100%;
+            height: 40px;
+            position: relative;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            cursor: pointer;
+            outline: none;
+            user-select: none;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Preview Button */
+        .blue-button {
+            background: var(--primary);
+            color: var(--primary-foreground);
+        }
+        .blue-button:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+        .blue-button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        /* Emerald Green Download Button */
+        .green-button {
+            background: var(--success);
+            color: var(--success-foreground);
+        }
+        .green-button:hover:not(:disabled) {
+            background: var(--success-hover);
+        }
+        .green-button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        /* Disabled Button States */
+        button.action-btn:disabled {
+            background: #f4f4f5 !important;
+            color: #a1a1aa !important;
+            border-color: #e4e4e7 !important;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Modern Status Indicators */
+        .led-indicator-module {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .led {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            transition: all 0.15s ease;
+        }
+        .led-blue {
+            background: #3b82f6;
+            box-shadow: 0 0 8px #3b82f6;
+        }
+        .led-red {
+            background: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+        }
+        .led-green {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+        .led-off {
+            background: #a1a1aa;
+        }
+        .led-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* ----------------------------------------------------
+           ALERT SCREEN / STATUS LOG
+           ---------------------------------------------------- */
+        .lcd-display-container {
+            margin-top: 4px;
+            width: 100%;
+        }
+        .lcd-bezel {
+            position: relative;
+        }
+        .lcd-screen {
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .status-ready {
+            background: #f0fdf4 !important;
+            border-color: #bbf7d0 !important;
+            color: #166534 !important;
+        }
+        .status-loading {
+            background: #eff6ff !important;
+            border-color: #dbeafe !important;
+            color: #1d4ed8 !important;
+        }
+        .status-warning {
+            background: #fffbeb !important;
+            border-color: #fef3c7 !important;
+            color: #b45309 !important;
+        }
+        .status-error {
+            background: #fef2f2 !important;
+            border-color: #fee2e2 !important;
+            color: #b91c1c !important;
+        }
+
+        /* ----------------------------------------------------
+           PREVIEW PANE
+           ---------------------------------------------------- */
+        .preview-pane {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: slideUp 0.25s ease-out;
+            position: relative;
+        }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+        .preview-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+        }
+        
+        .close-preview-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .close-preview-btn:hover {
+            background: #f4f4f5;
+            color: var(--text-primary);
+        }
+        .close-preview-btn:active {
+            transform: scale(0.95);
+        }
+
+        .preview-scroll {
+            overflow-y: auto;
+            max-height: 600px;
+            padding: 20px;
+            background: #f8fafc; 
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            position: relative;
+        }
+
+        .preview-page-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .preview-canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .preview-page-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #854d0e;
+            background: #fef9c3; /* Yellow badge */
+            border: 1px solid #fef08a;
+            border-radius: 4px;
+            padding: 3px 8px;
+        }
+
+        .preview-loading, .preview-error {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 30px;
+            text-align: center;
+            z-index: 2;
+        }
+        .preview-error {
+            color: var(--error-text);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Desktop Layout Config */
+        @media (min-width: 1024px) {
+            body {
+                padding: 16px;
+                height: 100vh;
+                overflow: hidden;
+            }
+            .app-container {
+                flex-direction: row;
+                align-items: stretch;
+                gap: 24px;
+                height: calc(100vh - 32px);
+                margin: 0 auto;
+            }
+            .sidebar {
+                width: 380px;
+                flex-shrink: 0;
+                height: 100%;
+                overflow-y: auto;
+            }
+            .sidebar::-webkit-scrollbar {
+                width: 4px;
+            }
+            .sidebar::-webkit-scrollbar-thumb {
+                background: var(--border);
+                border-radius: 2px;
+            }
+            .preview-pane {
+                flex-grow: 1;
+                min-width: 0;
+                height: 100%;
+            }
+            .preview-scroll {
+                flex-grow: 1;
+                min-height: 0;
+                max-height: none;
+            }
+        }
+
+        /* ----------------------------------------------------
+           PRODUCT CONFIGURATOR
+           ---------------------------------------------------- */
+        .configurator-wrapper {
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .configurator-header {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .configurator-subtext {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .configurator-reset-btn {
+            width: auto !important;
+            height: 26px !important;
+            font-size: 11px !important;
+            padding: 0 10px !important;
+            background: #ffffff !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-primary) !important;
+            border-radius: 6px !important;
+            transition: all 0.15s ease !important;
+        }
+        .configurator-reset-btn:hover {
+            background: #f4f4f5 !important;
+        }
+        .product-list {
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+        }
+        .barcode-badge {
+            background: #f1f5f9; 
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #475569;
+            display: inline-block;
+            margin-bottom: 2px;
+            font-family: monospace;
+        }
+        .product-title-text {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 170px;
+        }
+        .product-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #ffffff;
+            gap: 8px;
+            transition: background 0.15s ease;
+        }
+        .product-row:hover {
+            background: #f8fafc;
+        }
+        .product-price-input {
+            width: 100px;
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #ffffff;
+            outline: none;
+            text-align: right;
+            transition: all 0.1s ease;
+        }
+        .product-price-input:focus {
+            border-color: #94a3b8;
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Left Sidebar: Controls Card -->
+    <div class="sidebar">
+
+        
+        <!-- File Picker Group -->
+        <div class="input-group">
+            <label class="engraved-label">Select PDF Label File</label>
+            <!-- Hidden input -->
+            <input type="file" id="pdf" accept=".pdf" style="display: none;" onchange="onFileSelect()">
+            
+            <!-- File container board -->
+            <div class="clipboard-board">
+                <!-- Dropzone -->
+                <div id="upload-zone" class="upload-zone" onclick="document.getElementById('pdf').click()">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    <div class="upload-text">DRAG & DROP FILE</div>
+                    <div class="upload-subtext">OR CLICK HERE TO BROWSE</div>
+                </div>
+
+                <!-- Selected File Card -->
+                <div id="file-card" class="file-card hidden">
+                    <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <div class="file-info">
+                        <div id="file-title" class="file-title">Label.pdf</div>
+                        <div id="file-size" class="file-size">0 KB</div>
+                    </div>
+                    <!-- Close button -->
+                    <button type="button" id="clear-file-btn" class="clear-file-btn" onclick="clearFile()" title="Deselect File">
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MRP Text Input Group -->
+        <div class="input-group">
+            <label for="mrp" class="engraved-label">MRP Text Overlay Content</label>
+            <div class="inset-input-slot">
+                <input type="text" id="mrp" value="MRP :- 1999">
+            </div>
+        </div>
+
+        <!-- Product Price Configurator (hidden by default) -->
+        <div id="product-configurator" class="input-group hidden">
+            <label class="engraved-label">Product Prices Configurator</label>
+            <div class="configurator-wrapper">
+                <div class="configurator-header">
+                    <span class="configurator-subtext">
+                        Set individual prices below:
+                    </span>
+                    <button type="button" onclick="applyDefaultPriceToAll()" class="action-btn configurator-reset-btn">
+                        Reset All
+                    </button>
+                </div>
+                <div id="product-list-container" class="product-list">
+                    <!-- Dynamic product rows go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Rename File Input Group -->
+        <div class="input-group">
+            <label for="filename-input" class="engraved-label">Output Filename (Download)</label>
+            <div class="inset-input-slot">
+                <input type="text" id="filename-input" placeholder="Enter output file name...">
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="btn-group-console">
+            <!-- Preview Button -->
+            <div class="button-module">
+                <button class="action-btn blue-button" onclick="processSmartPDF()">
+                    PREVIEW
+                </button>
+                <div class="led-indicator-module">
+                    <div class="led led-blue" id="preview-led"></div>
+                    <span class="led-label">ACTIVE</span>
+                </div>
+            </div>
+            
+            <!-- Download Button -->
+            <div class="button-module">
+                <button id="download-btn" class="action-btn green-button" onclick="downloadPDF()" disabled>
+                    DOWNLOAD
+                </button>
+                <div class="led-indicator-module">
+                    <div class="led led-red" id="download-led"></div>
+                    <span class="led-label">READY</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Console display box -->
+        <div class="lcd-display-container">
+            <div class="lcd-bezel">
+                <div id="log" class="lcd-screen status-ready">SYSTEM READY</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Area: Drafting Table -->
+    <div id="preview-outer" class="preview-pane hidden">
+        <div class="preview-header">
+            <span class="preview-title">DRAFTING TABLE PREVIEW</span>
+            <button class="close-preview-btn" onclick="closePreview()" title="Close Preview">&times;</button>
+        </div>
+        <div id="preview-container" class="preview-scroll">
+            <!-- Canvas objects will render here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    let selectedFile = null;
+    let editedPdfBytes = null;
+    let modifiedPdfBytes = null;
+    let detectedProducts = [];
+    let lastDefaultMRP = "MRP :- 1999";
+    function updateStatus(text, type = 'ready') {
+        const logDiv = document.getElementById('log');
+        logDiv.innerText = text;
+        logDiv.className = 'lcd-screen'; // reset class
+        if (type === 'ready') {
+            logDiv.classList.add('status-ready');
+        } else if (type === 'loading') {
+            logDiv.classList.add('status-loading');
+        } else if (type === 'warning') {
+            logDiv.classList.add('status-warning');
+        } else if (type === 'error') {
+            logDiv.classList.add('status-error');
+        }
+    }
+
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    async function handleFile(file) {
+        if (!file || file.type !== "application/pdf") {
+            alert("Please select or drop a valid PDF file!");
+            return;
+        }
+        selectedFile = file;
+        
+        // Toggle file card and upload zone
+        document.getElementById('upload-zone').classList.add('hidden');
+        document.getElementById('file-card').classList.remove('hidden');
+        
+        // File badges info
+        document.getElementById('file-title').innerText = selectedFile.name;
+        document.getElementById('file-size').innerText = formatBytes(selectedFile.size);
+        
+        // Output name default
+        const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || selectedFile.name;
+        document.getElementById('filename-input').value = "Final_" + baseName;
+
+        // Update Status Log
+        updateStatus("FILE LOADED. PRESS PREVIEW.", "warning");
+
+        // LEDs change state
+        document.getElementById('download-led').className = 'led led-red';
+        document.getElementById('preview-led').className = 'led led-blue';
+
+        // Scan and load barcode products
+        await scanPDFProducts(file);
+    }
+
+    function onFileSelect() {
+        const fileInput = document.getElementById('pdf');
+        if (fileInput.files.length > 0) {
+            handleFile(fileInput.files[0]);
+        }
+    }
+
+    function clearFile() {
+        const fileInput = document.getElementById('pdf');
+        fileInput.value = '';
+        selectedFile = null;
+        editedPdfBytes = null;
+        modifiedPdfBytes = null;
+        detectedProducts = [];
+        
+        document.getElementById('upload-zone').classList.remove('hidden');
+        document.getElementById('file-card').classList.add('hidden');
+        document.getElementById('filename-input').value = '';
+        document.getElementById('download-btn').disabled = true;
+        
+        // Hide configurator
+        document.getElementById('product-configurator').classList.add('hidden');
+        document.getElementById('product-list-container').innerHTML = '';
+        
+        closePreview();
+        
+        // Reset Status Log
+        updateStatus("SYSTEM READY", "ready");
+
+        // Reset LEDs
+        document.getElementById('download-led').className = 'led led-red';
+        document.getElementById('preview-led').className = 'led led-blue';
+    }
+
+    function closePreview() {
+        const previewOuter = document.getElementById('preview-outer');
+        previewOuter.classList.add('hidden');
+        
+        const previewContainer = document.getElementById('preview-container');
+        previewContainer.innerHTML = '';
+    }
+
+    function isBarcodeLike(str) {
+        const trimmed = str.trim();
+        return /^[A-Z0-9]{8,15}$/.test(trimmed) || /^[A-Z0-9\-]{8,16}$/.test(trimmed);
+    }
+
+    async function scanPDFProducts(file) {
+        const defaultPrice = document.getElementById('mrp').value;
+        updateStatus("SCANNING PRODUCTS...", "loading");
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+            const pdfTextDoc = await loadingTask.promise;
+            
+            const productMap = new Map();
+            
+            for (let i = 0; i < pdfTextDoc.numPages; i++) {
+                const textPage = await pdfTextDoc.getPage(i + 1);
+                const textContent = await textPage.getTextContent();
+                const items = textContent.items;
+                
+                for (let k = 0; k < items.length; k++) {
+                    const item = items[k];
+                    const cleanStr = item.str.trim();
+                    if (cleanStr === "New" || cleanStr === "NEW" || cleanStr.includes("New")) {
+                        const x_new = item.transform[4];
+                        const y_new = item.transform[5];
+                        
+                        // Search backwards for the first barcode-like item
+                        let barcode = "";
+                        let barcodeIdx = -1;
+                        for (let searchIdx = k - 1; searchIdx >= 0; searchIdx--) {
+                            const candStr = items[searchIdx].str.trim();
+                            if (isBarcodeLike(candStr)) {
+                                barcode = candStr;
+                                barcodeIdx = searchIdx;
+                                break;
+                            }
+                        }
+                        
+                        // Collect title items between barcodeIdx and k
+                        const startIdx = barcodeIdx !== -1 ? barcodeIdx + 1 : Math.max(0, k - 5);
+                        let titleLines = [];
+                        for (let tIdx = startIdx; tIdx < k; tIdx++) {
+                            const tItem = items[tIdx];
+                            const tStr = tItem.str.trim();
+                            if (tStr && tStr.toLowerCase() !== "new" && !isBarcodeLike(tStr)) {
+                                titleLines.push(tItem);
+                            }
+                        }
+                        
+                        // Sort title lines by Y descending (top-to-bottom)
+                        titleLines.sort((a, b) => b.transform[5] - a.transform[5]);
+                        const titleText = titleLines.map(c => c.str.trim()).join(" ");
+                        const normTitle = titleText.toLowerCase().replace(/[^a-z0-9]/g, "");
+                        const key = barcode || normTitle || `Label_${Math.round(x_new)}_${Math.round(y_new)}`;
+                        
+                        if (key && !productMap.has(key)) {
+                            productMap.set(key, {
+                                barcode: barcode || "N/A",
+                                title: titleText || "Unknown Title",
+                                key: key
+                            });
+                        }
+                    }
+                }
+            }
+            
+            detectedProducts = Array.from(productMap.values()).map(p => ({
+                ...p,
+                price: defaultPrice,
+                userEdited: false
+            }));
+            
+            renderProductList();
+            
+            updateStatus(`READY: ${detectedProducts.length} PRODUCTS DETECTED.`, "ready");
+            
+        } catch (err) {
+            console.error("Scanning error:", err);
+            updateStatus("ERROR SCANNING PRODUCTS", "error");
+        }
+    }
+
+    function renderProductList() {
+        const container = document.getElementById('product-list-container');
+        const configurator = document.getElementById('product-configurator');
+        
+        container.innerHTML = '';
+        
+        if (detectedProducts.length === 0) {
+            configurator.classList.add('hidden');
+            return;
+        }
+        
+        configurator.classList.remove('hidden');
+        
+        detectedProducts.forEach(prod => {
+            const row = document.createElement('div');
+            row.className = 'product-row';
+            
+            const left = document.createElement('div');
+            left.style.display = 'flex';
+            left.style.flexDirection = 'column';
+            left.style.gap = '2px';
+            left.style.minWidth = '0';
+            left.style.flexGrow = '1';
+            
+            const badge = document.createElement('span');
+            badge.className = 'barcode-badge';
+            badge.style.alignSelf = 'flex-start';
+            badge.innerText = prod.barcode;
+            
+            const title = document.createElement('div');
+            title.className = 'product-title-text';
+            title.innerText = prod.title;
+            title.title = prod.title;
+            
+            left.appendChild(badge);
+            left.appendChild(title);
+            
+            const right = document.createElement('div');
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'product-price-input';
+            input.value = prod.price;
+            input.dataset.key = prod.key;
+            input.oninput = (e) => {
+                prod.price = e.target.value;
+                prod.userEdited = true;
+            };
+            
+            right.appendChild(input);
+            row.appendChild(left);
+            row.appendChild(right);
+            container.appendChild(row);
+        });
+    }
+
+    function applyDefaultPriceToAll() {
+        const defaultPrice = document.getElementById('mrp').value;
+        detectedProducts.forEach(prod => {
+            prod.price = defaultPrice;
+            prod.userEdited = false;
+        });
+        renderProductList();
+    }
+
+    document.getElementById('mrp').addEventListener('input', (e) => {
+        const newDefault = e.target.value;
+        detectedProducts.forEach(prod => {
+            if (!prod.userEdited) {
+                prod.price = newDefault;
+            }
+        });
+        const inputs = document.querySelectorAll('.product-price-input');
+        inputs.forEach(input => {
+            const key = input.dataset.key;
+            const prod = detectedProducts.find(p => p.key === key);
+            if (prod && !prod.userEdited) {
+                input.value = newDefault;
+            }
+        });
+        lastDefaultMRP = newDefault;
+    });
+
+    async function processSmartPDF() {
+        const mrpText = document.getElementById('mrp').value;
+
+        if (!selectedFile) {
+            alert("Please select a PDF file first!");
+            return;
+        }
+
+        // Change Status Log
+        updateStatus("SCANNING LABELS...", "warning");
+
+        try {
+            const arrayBuffer = await selectedFile.arrayBuffer();
+            
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+            const pdfTextDoc = await loadingTask.promise;
+            
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+            const pages = pdfDoc.getPages();
+            const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            let totalMatches = 0;
+
+            for (let i = 0; i < pdfTextDoc.numPages; i++) {
+                const textPage = await pdfTextDoc.getPage(i + 1);
+                const textContent = await textPage.getTextContent();
+                const pageLib = pages[i];
+
+                // Collect all "NEW" items on this page
+                const newItemsOnPage = textContent.items.filter(item => {
+                    const cleanStr = item.str.trim();
+                    return cleanStr === "New" || cleanStr === "NEW" || cleanStr.includes("New");
+                });
+
+                // Group the "NEW" items on this page into columns by X coordinate
+                const colsMap = [];
+                newItemsOnPage.forEach(item => {
+                    const cx = item.transform[4];
+                    let existingCol = colsMap.find(c => Math.abs(c.x - cx) < 30);
+                    if (!existingCol) {
+                        existingCol = { x: cx, items: [] };
+                        colsMap.push(existingCol);
+                    }
+                    existingCol.items.push(item);
+                });
+
+                // Sort columns by x coordinate
+                colsMap.sort((a, b) => a.x - b.x);
+
+                // Compute column width spacing
+                let colWidth = 180; // default label width fallback
+                if (colsMap.length > 1) {
+                    let totalSpacing = 0;
+                    for (let j = 0; j < colsMap.length - 1; j++) {
+                        totalSpacing += colsMap[j+1].x - colsMap[j].x;
+                    }
+                    colWidth = totalSpacing / (colsMap.length - 1);
+                }
+
+                // Determine the right boundary for each column based on its items and title lines
+                colsMap.forEach(col => {
+                    let maxRight = 0;
+                    col.items.forEach(newItem => {
+                        const x_new = newItem.transform[4];
+                        const y_new = newItem.transform[5];
+                        
+                        // Find any title items directly above this label
+                        const titleItems = textContent.items.filter(other => {
+                            const ox = other.transform[4];
+                            const oy = other.transform[5];
+                            // Y is ~10 points above NEW, X is in this label's horizontal column range
+                            return Math.abs(oy - (y_new + 10)) < 3 && 
+                                   ox >= x_new - 10 && 
+                                   ox < x_new + colWidth - 10;
+                        });
+
+                        titleItems.forEach(tItem => {
+                            const rEdge = tItem.transform[4] + tItem.width;
+                            if (rEdge > maxRight) {
+                                maxRight = rEdge;
+                            }
+                        });
+                    });
+
+                    // Fallback to 82% of the column width if no title lines or they are very short
+                    const fallbackWidth = colWidth * 0.82;
+                    col.rightEdge = Math.max(maxRight, col.x + fallbackWidth);
+                });
+
+                textContent.items.forEach((item, k) => {
+                    const cleanStr = item.str.trim();
+                    
+                    if (cleanStr === "New" || cleanStr === "NEW" || cleanStr.includes("New")) {
+                        totalMatches++;
+
+                        const x = item.transform[4];
+                        const y = item.transform[5];
+                        
+                        // Find which column this item belongs to
+                        const col = colsMap.find(c => Math.abs(c.x - x) < 30);
+                        const rightEdge = col ? col.rightEdge : (x + colWidth * 0.82);
+
+                        // Search backwards for the first barcode-like item
+                        let barcode = "";
+                        let barcodeIdx = -1;
+                        for (let searchIdx = k - 1; searchIdx >= 0; searchIdx--) {
+                            const candStr = textContent.items[searchIdx].str.trim();
+                            if (isBarcodeLike(candStr)) {
+                                barcode = candStr;
+                                barcodeIdx = searchIdx;
+                                break;
+                            }
+                        }
+                        
+                        // Collect title items between barcodeIdx and k
+                        const startIdx = barcodeIdx !== -1 ? barcodeIdx + 1 : Math.max(0, k - 5);
+                        let titleLines = [];
+                        for (let tIdx = startIdx; tIdx < k; tIdx++) {
+                            const tItem = textContent.items[tIdx];
+                            const tStr = tItem.str.trim();
+                            if (tStr && tStr.toLowerCase() !== "new" && !isBarcodeLike(tStr)) {
+                                titleLines.push(tItem);
+                            }
+                        }
+                        
+                        // Sort title lines by Y descending (top-to-bottom)
+                        titleLines.sort((a, b) => b.transform[5] - a.transform[5]);
+                        const titleText = titleLines.map(c => c.str.trim()).join(" ");
+                        const normTitle = titleText.toLowerCase().replace(/[^a-z0-9]/g, "");
+                        const key = barcode || normTitle || `Label_${Math.round(x)}_${Math.round(y)}`;
+                        
+                        let finalMrpText = mrpText;
+                        const matchedProd = detectedProducts.find(p => p.key === key);
+                        if (matchedProd) {
+                            finalMrpText = matchedProd.price;
+                        }
+
+                        // Calculate the width of the MRP text to align it to the right
+                        const textWidth = helveticaFont.widthOfTextAtSize(finalMrpText, 8.5);
+                        // Align the text so it ends at rightEdge (minus 2pt right margin padding)
+                        const drawX = rightEdge - textWidth - 2;
+
+                        pageLib.drawText(finalMrpText, {
+                            x: drawX, 
+                            y: y,  
+                            size: 8.5,   
+                            font: helveticaFont,
+                            color: PDFLib.rgb(0, 0, 0)
+                        });
+                    }
+                });
+            }
+
+            if (totalMatches === 0) {
+                updateStatus("WORD 'NEW' NOT DETECTED", "error");
+                return;
+            }
+
+            modifiedPdfBytes = await pdfDoc.save();
+
+            // Success Update
+            updateStatus(`READY: ${totalMatches} LABELS DETECTED.`, "ready");
+            
+            document.getElementById('download-btn').disabled = false;
+
+            // Turn LEDs Green for Ready state
+            document.getElementById('download-led').className = 'led led-green';
+            document.getElementById('preview-led').className = 'led led-green';
+
+            await renderPreview(modifiedPdfBytes);
+            
+        } catch (err) {
+            console.error(err);
+            updateStatus("ERROR IN CORE PROCESS", "error");
+        }
+    }
+
+    async function renderPreview(pdfBytes) {
+        const previewContainer = document.getElementById('preview-container');
+        previewContainer.innerHTML = '<div class="preview-loading">RENDERING VECTOR PREVIEW SHEETS...</div>';
+        
+        const previewOuter = document.getElementById('preview-outer');
+        previewOuter.classList.remove('hidden');
+        
+        try {
+            const loadingTask = pdfjsLib.getDocument({ data: pdfBytes.slice(0) });
+            const pdfDoc = await loadingTask.promise;
+            
+            previewContainer.innerHTML = '';
+            
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
+                
+                const canvas = document.createElement('canvas');
+                canvas.className = 'preview-canvas';
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                
+                await page.render(renderContext).promise;
+                
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'preview-page-wrapper';
+                
+                const pageLabel = document.createElement('div');
+                pageLabel.className = 'preview-page-label';
+                pageLabel.innerText = `SHEET ${i} OF ${pdfDoc.numPages}`;
+                
+                pageWrapper.appendChild(canvas);
+                pageWrapper.appendChild(pageLabel);
+                
+                previewContainer.appendChild(pageWrapper);
+            }
+        } catch (err) {
+            console.error(err);
+            previewContainer.innerHTML = '<div class="preview-error">PREVIEW BOARD RENDER ERROR.</div>';
+        }
+    }
+
+    function downloadPDF() {
+        if (!modifiedPdfBytes) {
+            alert("Please click Preview first!");
+            return;
+        }
+        
+        let filename = document.getElementById('filename-input').value.trim();
+        if (!filename) {
+            filename = "Final_Modified_PDF";
+        }
+        
+        if (!filename.toLowerCase().endsWith('.pdf')) {
+            filename += '.pdf';
+        }
+        
+        const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        
+        if (isIOS) {
+            link.target = "_blank";
+        }
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up DOM and URL
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        
+        updateStatus("FILE COMPILATION COMPLETED", "ready");
+    }
+
+    // Drag & Drop Handling
+    const uploadZone = document.getElementById('upload-zone');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        uploadZone.classList.add('drag-over');
+    }
+
+    function unhighlight(e) {
+        uploadZone.classList.remove('drag-over');
+    }
+
+    uploadZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    }
+</script>
+
+</body>
+</html>
