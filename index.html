@@ -1,30 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="gu">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Barcode MRP Editor - Console</title>
-    <!-- Google Fonts -->
+    <title>ગેલેક્ષી STOCK (ગાયત્રી) - ERP Stock System</title>
+    <!-- Google Fonts: Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- PDF Libraries -->
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDSBNsdBdb9a7pCgm-lOCMkJsKJUVuZoaQ",
+            authDomain: "galaxy-gaytri.firebaseapp.com",
+            databaseURL: "https://galaxy-gaytri-default-rtdb.firebaseio.com",
+            projectId: "galaxy-gaytri",
+            storageBucket: "galaxy-gaytri.firebasestorage.app",
+            messagingSenderId: "817366375093",
+            appId: "1:817366375093:web:bfe35655985e3eca153cfc"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const DB_PATH = 'galaxy_stock';
+    </script>
+
+    
     <style>
         :root {
-            --bg-app: #f8fafc;
-            --bg-card: #ffffff;
-            --border: #e2e8f0;
+            --bg-color: #faf6f4; /* Cream background from screenshot */
+            --header-bg: #ffffff;
+            --card-bg: #ffffff;
+            --card-border: #cbd5e1;
+            --card-hover-border: #94a3b8;
             --text-primary: #0f172a;
             --text-secondary: #475569;
-            --primary: #0f172a;
-            --primary-hover: #1e293b;
-            --primary-foreground: #ffffff;
-            --success: #10b981;
-            --success-hover: #059669;
-            --success-foreground: #ffffff;
-            --radius: 8px;
+            --accent-navy: #002d62; /* Navy blue from ERP */
+            --accent-blue: #2563eb;
+            --accent-emerald: #059669;
+            --accent-cyan: #0891b2;
+            --accent-red: #dc2626;
+            --table-row-hover: #f8fafc;
+            --subtotal-bg: #ecfdf5;
+            --subtotal-border: #a7f3d0;
+            --subtotal-text: #047857;
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
+            --sidebar-border: #c0c0c0;
         }
 
         * {
@@ -34,1290 +60,2547 @@
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-app);
-            min-height: 100vh;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-color);
             color: var(--text-primary);
-            line-height: 1.5;
-            padding: 16px;
-        }
-
-        .app-container {
-            max-width: 1200px;
-            margin: 16px auto;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            overflow-y: scroll;
         }
 
-        /* ----------------------------------------------------
-           SHADCN SIDEBAR PANEL
-           ---------------------------------------------------- */
-        .sidebar {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
+        body.modal-open {
+            overflow: hidden !important;
+        }
+
+        /* Smooth scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            height: 50px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--sidebar-border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 4px;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+
+        .top-tab {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #374151;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            text-transform: uppercase;
+            transition: all 0.15s;
+        }
+
+        .top-tab:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .top-tab.active {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+
+        /* Workspace Wrapper */
+        .workspace {
+            display: flex;
+            flex: 1;
+        }
+
+
+        /* Main Workspace Panel */
+        .main-panel {
+            flex: 1;
             padding: 24px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            background: var(--bg-color);
+        }
+
+        .view-pane {
             display: flex;
             flex-direction: column;
             gap: 20px;
-            position: relative;
-            transition: all 0.2s ease;
+            height: 100%;
         }
 
-        /* ----------------------------------------------------
-           FILE PICKER
-           ---------------------------------------------------- */
-        .clipboard-board {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 6px;
-        }
-
-        .upload-zone {
+        /* Dashboard Specific View */
+        .dashboard-header {
             background: #ffffff;
-            border: 1px dashed #cbd5e1;
-            border-radius: calc(var(--radius) - 2px);
-            padding: 24px 16px;
-            text-align: center;
-            cursor: pointer;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px 24px;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            transition: all 0.15s ease-in-out;
-            min-height: 110px;
-        }
-        .upload-zone:hover {
-            background: #f8fafc;
-            border-color: #94a3b8;
-        }
-        .upload-zone.drag-over {
-            background: #f1f5f9;
-            border-color: #64748b;
+            box-shadow: var(--shadow-sm);
         }
 
-        .upload-icon {
-            width: 28px;
-            height: 28px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-        .upload-text {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.01em;
-        }
-        .upload-subtext {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
-        /* Selected File Card */
-        .file-card {
-            display: flex;
-            align-items: center;
-            background: #f0fdf4; /* Light Green */
-            border: 1px solid #bbf7d0;
-            border-radius: calc(var(--radius) - 2px);
-            padding: 12px 14px;
-            position: relative;
-            animation: fadeIn 0.15s ease-out;
-            min-height: 70px;
-        }
-        .file-icon {
-            width: 24px;
-            height: 24px;
-            color: #166534;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        .file-info {
-            flex-grow: 1;
-            min-width: 0;
-        }
-        .file-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #166534;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .file-size {
-            font-size: 11px;
-            font-weight: 500;
-            color: #15803d;
-            margin-top: 1px;
-        }
-
-        /* Red clear file badge button */
-        .clear-file-btn {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #ef4444;
-            border: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 12;
-            transition: background 0.15s ease, transform 0.1s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
+        .dashboard-title {
+            font-size: 1.4rem;
             font-weight: 700;
-            color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .clear-file-btn:hover {
-            background: #dc2626;
-            transform: scale(1.05);
-        }
-        .clear-file-btn:active {
-            transform: scale(0.95);
+            color: var(--accent-navy);
         }
 
-        /* ----------------------------------------------------
-           FORM CONTROLS
-           ---------------------------------------------------- */
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .engraved-label {
-            font-size: 12px;
+        .dashboard-date {
+            background: #f8fafc;
+            border: 1px solid var(--card-border);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--text-secondary);
-            letter-spacing: -0.01em;
-        }
-
-        .inset-input-slot {
-            position: relative;
-        }
-        .inset-input-slot input[type="text"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-primary);
-            background: #ffffff;
-            outline: none;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .inset-input-slot input[type="text"]:focus {
-            border-color: #94a3b8;
-            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.15);
-        }
-
-        /* ----------------------------------------------------
-           ACTION BUTTONS
-           ---------------------------------------------------- */
-        .btn-group-console {
             display: flex;
-            flex-direction: row;
-            gap: 12px;
-            margin-top: 4px;
-        }
-        .button-module {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
             align-items: center;
             gap: 8px;
         }
 
-        button.action-btn {
-            width: 100%;
-            height: 40px;
+        .dashboard-date span {
+            color: var(--text-primary);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .dashboard-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            padding: 30px 24px;
             position: relative;
-            border: 1px solid transparent;
-            border-radius: var(--radius);
-            cursor: pointer;
-            outline: none;
-            user-select: none;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.15s ease;
+            overflow: hidden;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        /* Preview Button */
-        .blue-button {
-            background: var(--primary);
-            color: var(--primary-foreground);
-        }
-        .blue-button:hover:not(:disabled) {
-            background: var(--primary-hover);
-        }
-        .blue-button:active:not(:disabled) {
-            transform: scale(0.98);
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.06);
         }
 
-        /* Emerald Green Download Button */
-        .green-button {
-            background: var(--success);
-            color: var(--success-foreground);
-        }
-        .green-button:hover:not(:disabled) {
-            background: var(--success-hover);
-        }
-        .green-button:active:not(:disabled) {
-            transform: scale(0.98);
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
         }
 
-        /* Disabled Button States */
-        button.action-btn:disabled {
-            background: #f4f4f5 !important;
-            color: #a1a1aa !important;
-            border-color: #e4e4e7 !important;
-            cursor: not-allowed;
-            transform: none !important;
-        }
+        .dashboard-card.kapan::before { background: var(--accent-navy); }
+        .dashboard-card.pcs::before { background: var(--accent-emerald); }
+        .dashboard-card.carats::before { background: var(--accent-cyan); }
 
-        /* Modern Status Indicators */
-        .led-indicator-module {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .led {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            transition: all 0.15s ease;
-        }
-        .led-blue {
-            background: #3b82f6;
-            box-shadow: 0 0 8px #3b82f6;
-        }
-        .led-red {
-            background: #ef4444;
-            box-shadow: 0 0 8px #ef4444;
-        }
-        .led-green {
-            background: #10b981;
-            box-shadow: 0 0 8px #10b981;
-        }
-        .led-off {
-            background: #a1a1aa;
-        }
-        .led-label {
-            font-size: 10px;
-            font-weight: 600;
+        .db-header {
+            font-size: 1rem;
+            font-weight: 700;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.5px;
         }
 
-        /* ----------------------------------------------------
-           ALERT SCREEN / STATUS LOG
-           ---------------------------------------------------- */
-        .lcd-display-container {
-            margin-top: 4px;
-            width: 100%;
-        }
-        .lcd-bezel {
-            position: relative;
-        }
-        .lcd-screen {
-            border: 1px solid transparent;
-            border-radius: var(--radius);
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
-        .status-ready {
-            background: #f0fdf4 !important;
-            border-color: #bbf7d0 !important;
-            color: #166534 !important;
-        }
-        .status-loading {
-            background: #eff6ff !important;
-            border-color: #dbeafe !important;
-            color: #1d4ed8 !important;
-        }
-        .status-warning {
-            background: #fffbeb !important;
-            border-color: #fef3c7 !important;
-            color: #b45309 !important;
-        }
-        .status-error {
-            background: #fef2f2 !important;
-            border-color: #fee2e2 !important;
-            color: #b91c1c !important;
+        .db-value {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.1;
         }
 
-        /* ----------------------------------------------------
-           PREVIEW PANE
-           ---------------------------------------------------- */
-        .preview-pane {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            animation: slideUp 0.25s ease-out;
-            position: relative;
-        }
-        .preview-header {
+        /* Stock View Styles */
+        .stock-controls {
+            position: sticky;
+            top: 50px;
+            z-index: 990;
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 6px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 12px;
+            gap: 20px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-sm);
         }
-        .preview-title {
-            font-size: 14px;
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 150px;
+            max-width: 250px;
+        }
+
+        /* ── Inline Controls KPI Container ── */
+        .controls-kpi-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
             font-weight: 700;
-            letter-spacing: -0.01em;
-            color: var(--text-primary);
-        }
-        
-        .close-preview-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 500;
             color: var(--text-secondary);
+            margin-left: 10px;
+            margin-right: auto;
+            flex-wrap: wrap;
+        }
+        .controls-kpi-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .controls-kpi-val {
+            color: #dc2626; /* Red color for numbers */
+            font-weight: 800;
+            font-size: 1.05rem; /* Larger font size for numbers */
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .search-input {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid var(--card-border);
+            padding: 6px 12px 6px 36px;
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-navy);
+            background: #ffffff;
+        }
+
+        .btn-add {
+            background: var(--accent-navy);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: center;
-            transition: all 0.15s ease;
+            gap: 8px;
+            font-family: inherit;
+            transition: opacity 0.15s;
         }
-        .close-preview-btn:hover {
-            background: #f4f4f5;
+
+        .btn-add:hover {
+            opacity: 0.9;
+        }
+
+        /* Group Stock Cards Grid */
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 1400px) {
+            .stock-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .stock-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 650px) {
+            .stock-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stock-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow-md);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+            transition: border-color 0.2s;
+        }
+
+        .stock-card:hover {
+            border-color: var(--card-hover-border);
+        }
+
+        .card-header-bar {
+            padding: 6px 12px;
+            background: var(--accent-navy);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        .group-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .group-badge-summary {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .table-container {
+            flex: 1;
+        }
+
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .stock-table th {
+            position: sticky;
+            top: 0;
+            background: #f1f5f9;
+            color: var(--text-secondary);
+            font-weight: 700;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--card-border);
+            z-index: 10;
+        }
+
+        .stock-table td {
+            padding: 4px 10px;
+            border-bottom: 1px solid #f1f5f9;
             color: var(--text-primary);
         }
-        .close-preview-btn:active {
-            transform: scale(0.95);
+
+        .stock-table tr:hover td {
+            background: var(--table-row-hover);
         }
 
-        .preview-scroll {
-            overflow-y: auto;
-            max-height: 600px;
-            padding: 20px;
-            background: #f8fafc; 
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 24px;
-            position: relative;
+        .stock-table tbody tr:nth-child(even) td {
+            background: #e2e8f0;
         }
 
-        .preview-page-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            z-index: 2;
+        .stock-table tbody tr:nth-child(even):hover td {
+            background: #cdd5e0;
         }
 
-        .preview-canvas {
-            max-width: 100%;
-            height: auto;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-        }
-        .preview-page-label {
-            font-size: 10px;
-            font-weight: 600;
-            color: #854d0e;
-            background: #fef9c3; /* Yellow badge */
-            border: 1px solid #fef08a;
-            border-radius: 4px;
-            padding: 3px 8px;
-        }
-
-        .preview-loading, .preview-error {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            padding: 30px;
+        .col-sno {
+            width: 60px;
             text-align: center;
-            z-index: 2;
-        }
-        .preview-error {
-            color: var(--error-text);
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* Desktop Layout Config */
-        @media (min-width: 1024px) {
-            body {
-                padding: 16px;
-                height: 100vh;
-                overflow: hidden;
-            }
-            .app-container {
-                flex-direction: row;
-                align-items: stretch;
-                gap: 24px;
-                height: calc(100vh - 32px);
-                margin: 0 auto;
-            }
-            .sidebar {
-                width: 380px;
-                flex-shrink: 0;
-                height: 100%;
-                overflow-y: auto;
-            }
-            .sidebar::-webkit-scrollbar {
-                width: 4px;
-            }
-            .sidebar::-webkit-scrollbar-thumb {
-                background: var(--border);
-                border-radius: 2px;
-            }
-            .preview-pane {
-                flex-grow: 1;
-                min-width: 0;
-                height: 100%;
-            }
-            .preview-scroll {
-                flex-grow: 1;
-                min-height: 0;
-                max-height: none;
-            }
-        }
-
-        /* ----------------------------------------------------
-           PRODUCT CONFIGURATOR
-           ---------------------------------------------------- */
-        .configurator-wrapper {
-            padding: 16px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-        }
-        .configurator-header {
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-        }
-        .configurator-subtext {
-            font-size: 11px;
-            font-weight: 500;
             color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
         }
-        .configurator-reset-btn {
-            width: auto !important;
-            height: 26px !important;
-            font-size: 11px !important;
-            padding: 0 10px !important;
-            background: #ffffff !important;
-            border: 1px solid var(--border) !important;
-            color: var(--text-primary) !important;
-            border-radius: 6px !important;
-            transition: all 0.15s ease !important;
+
+        .col-kapan {
+            font-weight: 600;
+            color: var(--accent-navy);
         }
-        .configurator-reset-btn:hover {
-            background: #f4f4f5 !important;
+
+        .col-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
         }
-        .product-list {
-            max-height: 220px;
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            border-radius: 6px;
+
+        .subtotal-row td {
+            background: var(--subtotal-bg) !important;
+            border-top: 1px solid var(--subtotal-border);
+            border-bottom: 2px solid var(--subtotal-border);
+            font-weight: 700;
+            color: var(--subtotal-text) !important;
+        }
+
+        .subtotal-row:hover td {
+            background: #d1fae5 !important;
+        }
+
+        .subtotal-label {
+            font-weight: 700;
+            color: var(--accent-emerald) !important;
+        }
+
+        .placeholder-view {
             background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 60px;
+            text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            padding: 8px;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            box-shadow: var(--shadow-sm);
         }
-        .barcode-badge {
-            background: #f1f5f9; 
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 10px;
-            font-weight: 600;
-            color: #475569;
-            display: inline-block;
-            margin-bottom: 2px;
-            font-family: monospace;
+
+        .placeholder-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-navy);
         }
-        .product-title-text {
-            font-size: 11px;
-            font-weight: 500;
+
+        .placeholder-desc {
+            font-size: 0.95rem;
             color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 170px;
+            max-width: 400px;
+            line-height: 1.5;
         }
-        .product-row {
+
+                .no-results-msg {
+            grid-column: 1 / -1;
+            padding: 60px;
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        /* ── Cloud Sync Indicator ── */
+        #sync-indicator {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: #ffffff;
-            gap: 8px;
-            transition: background 0.15s ease;
+            gap: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1.5px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            cursor: default;
+            user-select: none;
+            margin-left: 10px;
         }
-        .product-row:hover {
-            background: #f8fafc;
+        #sync-indicator.synced {
+            background: #f0fdf4 !important;
+            border-color: #86efac !important;
+            color: #16a34a !important;
         }
-        .product-price-input {
-            width: 100px;
-            padding: 5px 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            background: #ffffff;
-            outline: none;
-            text-align: right;
-            transition: all 0.1s ease;
+        #sync-indicator.syncing {
+            background: #fefce8 !important;
+            border-color: #fde047 !important;
+            color: #ca8a04 !important;
         }
-        .product-price-input:focus {
-            border-color: #94a3b8;
-            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.15);
+        #sync-indicator.error {
+            background: #fef2f2 !important;
+            border-color: #fca5a5 !important;
+            color: #dc2626 !important;
+        }
+        #sync-indicator .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+        #sync-indicator.synced .sync-dot { background: #22c55e !important; }
+        #sync-indicator.syncing .sync-dot {
+            background: #eab308 !important;
+            animation: syncpulse 0.8s ease-in-out infinite;
+        }
+        #sync-indicator.error .sync-dot { background: #ef4444 !important; }
+        @keyframes syncpulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
         }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <!-- Left Sidebar: Controls Card -->
-    <div class="sidebar">
+    <!-- Top Navigation Bar -->
+    <div class="top-navbar">
+        <button class="top-tab active" id="btn-top-stock" onclick="switchView('stock')"><i data-lucide="package" style="width:16px;height:16px;"></i> Stock</button>
+        <button class="top-tab" id="btn-top-report" onclick="switchView('report')"><i data-lucide="clipboard-list" style="width:16px;height:16px;"></i> Report</button>
+        <button class="top-tab" id="btn-top-master" onclick="switchView('master')"><i data-lucide="database" style="width:16px;height:16px;"></i> Master</button>
+        
+        <!-- Date selection dropdown/picker in navbar -->
+        <div style="margin-left: 20px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: var(--text-secondary);">
+            <i data-lucide="calendar" style="width:16px;height:16px;color:var(--accent-navy);"></i>
+            તારીખ (Date):
+            <input type="date" id="header-date-picker" min="2020-01-01" max="2035-12-31" style="border: 1px solid var(--card-border); background: #ffffff; color: var(--text-primary); padding: 4px 8px; border-radius: 6px; font-family: inherit; font-size: 0.8rem; font-weight: 700; outline: none; cursor: pointer;">
+        </div>
+
 
         
-        <!-- File Picker Group -->
-        <div class="input-group">
-            <label class="engraved-label">Select PDF Label File</label>
-            <!-- Hidden input -->
-            <input type="file" id="pdf" accept=".pdf" style="display: none;" onchange="onFileSelect()">
-            
-            <!-- File container board -->
-            <div class="clipboard-board">
-                <!-- Dropzone -->
-                <div id="upload-zone" class="upload-zone" onclick="document.getElementById('pdf').click()">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                    </svg>
-                    <div class="upload-text">DRAG & DROP FILE</div>
-                    <div class="upload-subtext">OR CLICK HERE TO BROWSE</div>
-                </div>
+        <!-- Backup & Restore Buttons -->
+        <button class="top-tab" onclick="downloadBackup()" style="margin-left: auto; border-color: #059669; color: #059669;"><i data-lucide="download" style="width:16px;height:16px;"></i> બેકઅપ ડાઉનલોડ (Backup)</button>
+        <button class="top-tab" onclick="triggerRestore()" style="border-color: #0891b2; color: #0891b2;"><i data-lucide="upload" style="width:16px;height:16px;"></i> બેકઅપ લોડ (Restore)</button>
+        <input type="file" id="file-restore" style="display: none;" accept=".json" onchange="restoreBackup(event)">
 
-                <!-- Selected File Card -->
-                <div id="file-card" class="file-card hidden">
-                    <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    <div class="file-info">
-                        <div id="file-title" class="file-title">Label.pdf</div>
-                        <div id="file-size" class="file-size">0 KB</div>
+        <!-- Cloud Sync Indicator -->
+        <div id="sync-indicator" class="syncing">
+            <span class="sync-dot"></span>
+            <span id="sync-label">Connecting...</span>
+        </div>
+    </div>
+
+    <!-- Workspace Panel -->
+    <div class="workspace">
+
+
+        <!-- Main Content Area -->
+        <div class="main-panel">
+            
+
+
+            <!-- VIEW B: STOCK VIEW -->
+            <div id="view-stock" class="view-pane">
+                <div class="stock-controls">
+                    <div class="search-wrapper">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="search-bar" autocomplete="off" class="search-input" placeholder="કોઈ પણ કાપણ નંબર શોધો (દા.ત. 867-3)...">
                     </div>
-                    <!-- Close button -->
-                    <button type="button" id="clear-file-btn" class="clear-file-btn" onclick="clearFile()" title="Deselect File">
-                        ✕
-                    </button>
+                    <!-- Dynamic Inline KPIs -->
+                    <div class="controls-kpi-container">
+                        <div class="controls-kpi-item">
+                            <span>TOTAL KAPAN:</span>
+                            <span id="ctrl-kpi-kapan" class="controls-kpi-val">0</span>
+                        </div>
+                        <div class="controls-kpi-item">
+                            <span>TOTAL RAW PCS:</span>
+                            <span id="ctrl-kpi-pcs" class="controls-kpi-val">0</span>
+                        </div>
+                        <div class="controls-kpi-item">
+                            <span>TOTAL RAW CARATS:</span>
+                            <span id="ctrl-kpi-carats" class="controls-kpi-val">0.00</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-add" id="btn-add-group" style="background: #002d62; border: 1px solid #cbd5e1; color: white; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i data-lucide="plus-square"></i> Add Rough</button>
+                        <button class="btn-add" id="btn-add-kapan" style="cursor: pointer; display: flex; align-items: center; gap: 6px;"><i data-lucide="plus-circle"></i> Add Kapan</button>
+                    </div>
+                </div>
+
+                <div class="stock-grid" id="stock-grid">
+                    <!-- Cards will be populated dynamically -->
+                </div>
+
+                <div id="no-results" class="no-results-msg" style="display: none;">
+                    <i data-lucide="search" class="no-results-icon" style="width: 48px; height: 48px; opacity:0.5;"></i>
+                    <p>મેળ ખાતો કોઈ કાપણ નંબર મળ્યો નથી.</p>
                 </div>
             </div>
-        </div>
 
-        <!-- MRP Text Input Group -->
-        <div class="input-group">
-            <label for="mrp" class="engraved-label">MRP Text Overlay Content</label>
-            <div class="inset-input-slot">
-                <input type="text" id="mrp" value="MRP :- 1999">
-            </div>
-        </div>
-
-        <!-- Product Price Configurator (hidden by default) -->
-        <div id="product-configurator" class="input-group hidden">
-            <label class="engraved-label">Product Prices Configurator</label>
-            <div class="configurator-wrapper">
-                <div class="configurator-header">
-                    <span class="configurator-subtext">
-                        Set individual prices below:
-                    </span>
-                    <button type="button" onclick="applyDefaultPriceToAll()" class="action-btn configurator-reset-btn">
-                        Reset All
-                    </button>
+            <!-- VIEW D: REPORT VIEW -->
+            <div id="view-report" class="view-pane" style="display: none; flex-direction: column; gap: 16px;">
+                <!-- Header Card -->
+                <div class="stock-controls" style="padding: 6px 12px;">
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--accent-navy); display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="clipboard-list" style="width: 18px; height: 18px;"></i> દૈનિક કાપણ આવક-જાવક રીપોર્ટ (Daily Kapan IN-OUT Report)
+                    </div>
+                    <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-secondary);" id="report-date-display">
+                        તારીખ: 27-07-2026
+                    </div>
                 </div>
-                <div id="product-list-container" class="product-list">
-                    <!-- Dynamic product rows go here -->
+
+                <!-- Summary Cards Row -->
+                <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                    <div class="dashboard-card kapan" style="border-left: 5px solid #059669; padding: 8px 12px; min-height: auto; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                        <div class="db-header" style="color: #059669; font-weight: 700; font-size: 0.75rem;">TOTAL IN (કુલ આવક)</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">નંગ: <span id="report-in-pcs" style="font-size: 1rem; font-weight: 700; color: #059669; font-variant-numeric: tabular-nums;">0</span></div>
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">કેરેટ: <span id="report-in-carats" style="font-size: 1rem; font-weight: 700; color: #059669; font-variant-numeric: tabular-nums;">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card" style="border-left: 5px solid #dc2626; padding: 8px 12px; min-height: auto; background: #ffffff; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                        <div class="db-header" style="color: #dc2626; font-weight: 700; font-size: 0.75rem;">TOTAL OUT (કુલ જાવક)</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">નંગ: <span id="report-out-pcs" style="font-size: 1rem; font-weight: 700; color: #dc2626; font-variant-numeric: tabular-nums;">0</span></div>
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">કેરેટ: <span id="report-out-carats" style="font-size: 1rem; font-weight: 700; color: #dc2626; font-variant-numeric: tabular-nums;">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card" style="border-left: 5px solid var(--accent-navy); padding: 8px 12px; min-height: auto; background: #ffffff; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                        <div class="db-header" style="color: var(--accent-navy); font-weight: 700; font-size: 0.75rem;">NET CHANGE (ચોખ્ખો ફેરફાર)</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">નંગ: <span id="report-net-pcs" style="font-size: 1rem; font-weight: 700; color: var(--accent-navy); font-variant-numeric: tabular-nums;">0</span></div>
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">કેરેટ: <span id="report-net-carats" style="font-size: 1rem; font-weight: 700; color: var(--accent-navy); font-variant-numeric: tabular-nums;">0.00</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two Column Layout -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- IN Report Card -->
+                    <div style="background: #ffffff; border: 1px solid var(--card-border); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; display: flex; flex-direction: column;">
+                        <div style="background: #059669; color: white; padding: 6px 12px; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="arrow-down-left" style="width:14px;height:14px;"></i> આવક લીસ્ટ (IN / Received Stock)
+                        </div>
+                        <div style="max-height: 450px; overflow-y: auto;">
+                            <table class="stock-table" style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>ગ્રુપ</th>
+                                        <th>કાપણ (Kapan)</th>
+                                        <th style="text-align: right;">આવેલ નંગ</th>
+                                        <th style="text-align: right;">આવેલ કેરેટ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-in-tbody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- OUT Report Card -->
+                    <div style="background: #ffffff; border: 1px solid var(--card-border); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; display: flex; flex-direction: column;">
+                        <div style="background: #dc2626; color: white; padding: 6px 12px; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="arrow-up-right" style="width:14px;height:14px;"></i> જાવક અહેવાલ (OUT / Issued Stock)
+                        </div>
+                        <div style="max-height: 450px; overflow-y: auto;">
+                            <table class="stock-table" style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>તારીખ</th>
+                                        <th>કાપણ (Kapan)</th>
+                                        <th style="text-align: right;">જાવેલ નંગ</th>
+                                        <th style="text-align: right;">જાવેલ કેરેટ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-out-tbody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Rename File Input Group -->
-        <div class="input-group">
-            <label for="filename-input" class="engraved-label">Output Filename (Download)</label>
-            <div class="inset-input-slot">
-                <input type="text" id="filename-input" placeholder="Enter output file name...">
-            </div>
-        </div>
+            <!-- VIEW C: MASTER VIEW -->
+            <div id="view-master" class="view-pane" style="display: none;">
+                <div class="stock-controls">
+                    <div style="font-size: 1.2rem; font-weight: 700; color: var(--accent-navy); display: flex; align-items: center; gap: 8px;"><i data-lucide="database"></i> ગ્રુપ માસ્ટર મેનેજર (Group Master)</div>
+                    <div>
+                        <button class="btn-add" onclick="openAddGroupModal()" style="background: #002d62; border: 1px solid #cbd5e1; color: white; pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i data-lucide="plus-square"></i> Add Rough</button>
+                    </div>
+                </div>
 
-        <!-- Action Buttons -->
-        <div class="btn-group-console">
-            <!-- Preview Button -->
-            <div class="button-module">
-                <button class="action-btn blue-button" onclick="processSmartPDF()">
-                    PREVIEW
-                </button>
-                <div class="led-indicator-module">
-                    <div class="led led-blue" id="preview-led"></div>
-                    <span class="led-label">ACTIVE</span>
+                <div style="background: #ffffff; border: 1px solid var(--card-border); border-radius: 12px; box-shadow: var(--shadow-md); overflow: hidden;">
+                    <table class="stock-table" id="master-group-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>ગ્રુપનું નામ (Group Name)</th>
+                                <th style="text-align: right;">કુલ લોટ (Total Lots)</th>
+                                <th style="text-align: right;">કુલ નંગ (Total Pcs)</th>
+                                <th style="text-align: right;">કુલ કેરેટ (Total Carats)</th>
+                                <th style="text-align: center;">ક્રિયાઓ (Actions)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="master-group-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <!-- Download Button -->
-            <div class="button-module">
-                <button id="download-btn" class="action-btn green-button" onclick="downloadPDF()" disabled>
-                    DOWNLOAD
-                </button>
-                <div class="led-indicator-module">
-                    <div class="led led-red" id="download-led"></div>
-                    <span class="led-label">READY</span>
-                </div>
-            </div>
-        </div>
 
-        <!-- Status Console display box -->
-        <div class="lcd-display-container">
-            <div class="lcd-bezel">
-                <div id="log" class="lcd-screen status-ready">SYSTEM READY</div>
-            </div>
         </div>
     </div>
 
-    <!-- Right Area: Drafting Table -->
-    <div id="preview-outer" class="preview-pane hidden">
-        <div class="preview-header">
-            <span class="preview-title">DRAFTING TABLE PREVIEW</span>
-            <button class="close-preview-btn" onclick="closePreview()" title="Close Preview">&times;</button>
-        </div>
-        <div id="preview-container" class="preview-scroll">
-            <!-- Canvas objects will render here -->
-        </div>
-    </div>
-</div>
-
-<script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-    let selectedFile = null;
-    let editedPdfBytes = null;
-    let modifiedPdfBytes = null;
-    let detectedProducts = [];
-    let lastDefaultMRP = "MRP :- 1999";
-    function updateStatus(text, type = 'ready') {
-        const logDiv = document.getElementById('log');
-        logDiv.innerText = text;
-        logDiv.className = 'lcd-screen'; // reset class
-        if (type === 'ready') {
-            logDiv.classList.add('status-ready');
-        } else if (type === 'loading') {
-            logDiv.classList.add('status-loading');
-        } else if (type === 'warning') {
-            logDiv.classList.add('status-warning');
-        } else if (type === 'error') {
-            logDiv.classList.add('status-error');
-        }
-    }
-
-    function formatBytes(bytes, decimals = 2) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
-
-    async function handleFile(file) {
-        if (!file || file.type !== "application/pdf") {
-            alert("Please select or drop a valid PDF file!");
-            return;
-        }
-        selectedFile = file;
-        
-        // Toggle file card and upload zone
-        document.getElementById('upload-zone').classList.add('hidden');
-        document.getElementById('file-card').classList.remove('hidden');
-        
-        // File badges info
-        document.getElementById('file-title').innerText = selectedFile.name;
-        document.getElementById('file-size').innerText = formatBytes(selectedFile.size);
-        
-        // Output name default
-        const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || selectedFile.name;
-        document.getElementById('filename-input').value = "Final_" + baseName;
-
-        // Update Status Log
-        updateStatus("FILE LOADED. PRESS PREVIEW.", "warning");
-
-        // LEDs change state
-        document.getElementById('download-led').className = 'led led-red';
-        document.getElementById('preview-led').className = 'led led-blue';
-
-        // Scan and load barcode products
-        await scanPDFProducts(file);
-    }
-
-    function onFileSelect() {
-        const fileInput = document.getElementById('pdf');
-        if (fileInput.files.length > 0) {
-            handleFile(fileInput.files[0]);
-        }
-    }
-
-    function clearFile() {
-        const fileInput = document.getElementById('pdf');
-        fileInput.value = '';
-        selectedFile = null;
-        editedPdfBytes = null;
-        modifiedPdfBytes = null;
-        detectedProducts = [];
-        
-        document.getElementById('upload-zone').classList.remove('hidden');
-        document.getElementById('file-card').classList.add('hidden');
-        document.getElementById('filename-input').value = '';
-        document.getElementById('download-btn').disabled = true;
-        
-        // Hide configurator
-        document.getElementById('product-configurator').classList.add('hidden');
-        document.getElementById('product-list-container').innerHTML = '';
-        
-        closePreview();
-        
-        // Reset Status Log
-        updateStatus("SYSTEM READY", "ready");
-
-        // Reset LEDs
-        document.getElementById('download-led').className = 'led led-red';
-        document.getElementById('preview-led').className = 'led led-blue';
-    }
-
-    function closePreview() {
-        const previewOuter = document.getElementById('preview-outer');
-        previewOuter.classList.add('hidden');
-        
-        const previewContainer = document.getElementById('preview-container');
-        previewContainer.innerHTML = '';
-    }
-
-    function isBarcodeLike(str) {
-        const trimmed = str.trim();
-        return /^[A-Z0-9]{8,15}$/.test(trimmed) || /^[A-Z0-9\-]{8,16}$/.test(trimmed);
-    }
-
-    async function scanPDFProducts(file) {
-        const defaultPrice = document.getElementById('mrp').value;
-        updateStatus("SCANNING PRODUCTS...", "loading");
-        
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
-            const pdfTextDoc = await loadingTask.promise;
+    
+    <!-- Add Kapan Modal Dialog -->
+    <div id="modal-add-kapan" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div id="modal-add-kapan-content" style="background: white; color: #0f172a; padding: 24px; width: 90%; max-width: 480px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 14px; position: relative;">
+            <div id="modal-add-kapan-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; cursor: move; user-select: none;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--accent-navy); display: flex; align-items: center; gap: 8px;"><i data-lucide="plus-circle"></i> Add Kapan</h3>
+                <button id="modal-close" style="background: none; border: none; cursor: pointer; color: #64748b;"><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+            </div>
             
-            const productMap = new Map();
-            
-            for (let i = 0; i < pdfTextDoc.numPages; i++) {
-                const textPage = await pdfTextDoc.getPage(i + 1);
-                const textContent = await textPage.getTextContent();
-                const items = textContent.items;
+            <form id="form-add-kapan" autocomplete="off" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px; position: relative;">
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569;">Rough No.</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="input-group" placeholder="ગ્રુપ સિલેક્ટ કરો..." readonly required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.9rem; outline: none; background: #f8fafc; cursor: pointer; flex: 1;">
+                        <button type="button" id="btn-open-group-search" style="padding: 8px 10px; background: var(--accent-navy); border: none; color: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                    </div>
+
+                    <!-- Custom Search Party Dropdown Menu -->
+                    <div id="group-search-menu" style="display: none; position: absolute; top: 56px; left: 0; width: 100%; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.08); z-index: 1100; font-family: 'Outfit', sans-serif; flex-direction: column; overflow: hidden;">
+                        
+                        <!-- Search Box Section -->
+                        <div style="padding: 6px 12px; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                            <label style="font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">સર્ચ કરો (Search Name)</label>
+                            <input type="text" id="group-search-input" autocomplete="off" placeholder="અહીં નંબર અથવા નામ ટાઈપ કરો..." style="padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ecfdf5; color: #047857; font-weight: 600; width: 100%; transition: border-color 0.15s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#cbd5e1'">
+                        </div>
+
+                        <!-- Scrollable List -->
+                        <div id="group-search-list" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; background: #ffffff;">
+                            <!-- Add New Party Button -->
+                            <div id="btn-add-new-party-row" style="padding: 4px 12px; font-size: 0.75rem; font-weight: 700; color: #10b981; border-bottom: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
+                                <i data-lucide="plus" style="width:12px;height:12px;color:#10b981;"></i> + નવું ગ્રુપ ઉમેરો (Add New Party)
+                            </div>
+                            <!-- List items will be rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569;">Kapan No.</label>
+                    <input type="text" id="input-kapan" placeholder="દા.ત. 867-15" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.9rem; outline: none;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569;">કાચા નંગ (Raw Pieces)</label>
+                    <input type="number" id="input-pcs" placeholder="દા.ત. 1500" required min="0" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.9rem; outline: none;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569;">કાચા કેરેટ (Raw Carat)</label>
+                    <input type="number" id="input-carat" placeholder="દા.ત. 75.50" step="0.01" required min="0" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.9rem; outline: none;">
+                </div>
                 
-                for (let k = 0; k < items.length; k++) {
-                    const item = items[k];
-                    const cleanStr = item.str.trim();
-                    if (cleanStr === "New" || cleanStr === "NEW" || cleanStr.includes("New")) {
-                        const x_new = item.transform[4];
-                        const y_new = item.transform[5];
-                        
-                        // Search backwards for the first barcode-like item
-                        let barcode = "";
-                        let barcodeIdx = -1;
-                        for (let searchIdx = k - 1; searchIdx >= 0; searchIdx--) {
-                            const candStr = items[searchIdx].str.trim();
-                            if (isBarcodeLike(candStr)) {
-                                barcode = candStr;
-                                barcodeIdx = searchIdx;
-                                break;
-                            }
-                        }
-                        
-                        // Collect title items between barcodeIdx and k
-                        const startIdx = barcodeIdx !== -1 ? barcodeIdx + 1 : Math.max(0, k - 5);
-                        let titleLines = [];
-                        for (let tIdx = startIdx; tIdx < k; tIdx++) {
-                            const tItem = items[tIdx];
-                            const tStr = tItem.str.trim();
-                            if (tStr && tStr.toLowerCase() !== "new" && !isBarcodeLike(tStr)) {
-                                titleLines.push(tItem);
-                            }
-                        }
-                        
-                        // Sort title lines by Y descending (top-to-bottom)
-                        titleLines.sort((a, b) => b.transform[5] - a.transform[5]);
-                        const titleText = titleLines.map(c => c.str.trim()).join(" ");
-                        const normTitle = titleText.toLowerCase().replace(/[^a-z0-9]/g, "");
-                        const key = barcode || normTitle || `Label_${Math.round(x_new)}_${Math.round(y_new)}`;
-                        
-                        if (key && !productMap.has(key)) {
-                            productMap.set(key, {
-                                barcode: barcode || "N/A",
-                                title: titleText || "Unknown Title",
-                                key: key
-                            });
-                        }
-                    }
-                }
-            }
+                <div id="modal-error" style="color: #dc2626; font-size: 0.8rem; display: none; font-weight: 700; margin-top: 2px;"></div>
+                
+                <button type="submit" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; margin-top: 4px; background: var(--accent-navy); color: white; border: none; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;">
+                    <i data-lucide="check-circle"></i> સેવ કરો (Save to Local Database)
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Group Modal Dialog -->
+    <div id="modal-add-group" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; font-family: 'Outfit', sans-serif;">
+        <div id="modal-add-group-content" style="background: white; color: #0f172a; padding: 24px; width: 90%; max-width: 450px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 14px; position: relative;">
+            <div id="modal-add-group-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; cursor: move; user-select: none;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--accent-navy); display: flex; align-items: center; gap: 8px;"><i data-lucide="plus-square"></i> Add Rough</h3>
+                <button id="modal-group-close" style="background: none; border: none; cursor: pointer; color: #64748b;"><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+            </div>
             
-            detectedProducts = Array.from(productMap.values()).map(p => ({
-                ...p,
-                price: defaultPrice,
-                userEdited: false
-            }));
-            
-            renderProductList();
-            
-            updateStatus(`READY: ${detectedProducts.length} PRODUCTS DETECTED.`, "ready");
-            
-        } catch (err) {
-            console.error("Scanning error:", err);
-            updateStatus("ERROR SCANNING PRODUCTS", "error");
+            <form id="form-add-group" autocomplete="off" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569;">New Rough No.</label>
+                    <input type="text" id="input-group-name" placeholder="દા.ત. 876  CLIV 5-3 અથવા 876" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.9rem; outline: none;">
+                </div>
+                
+                <div id="modal-group-error" style="color: #dc2626; font-size: 0.8rem; display: none; font-weight: 700; margin-top: 2px;"></div>
+                
+                <button type="submit" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; margin-top: 4px; background: var(--accent-navy); color: white; border: none; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;">
+                    <i data-lucide="check-circle"></i> ગ્રુપ સેવ કરો (Save Group)
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Dialog Modal Overlay -->
+    <div id="custom-dialog-overlay" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(2px); font-family: 'Outfit', sans-serif;">
+        <div style="background: #ffffff; color: #0f172a; padding: 24px; width: 90%; max-width: 400px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 16px; animation: modalFadeIn 0.2s ease-out;">
+            <div id="dialog-header" style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--accent-navy); font-size: 1.1rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+                <!-- Injected dynamically -->
+            </div>
+            <div id="dialog-body" style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5; font-weight: 500;">
+                <!-- Injected dynamically -->
+            </div>
+            <!-- Input container for Prompt -->
+            <div id="dialog-input-container" style="display: none;">
+                <input type="text" id="dialog-prompt-input" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.9rem; outline: none; margin-top: 4px; background: #ffffff;">
+            </div>
+            <div id="dialog-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #cbd5e1; padding-top: 12px;">
+                <button id="dialog-btn-cancel" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: var(--text-secondary); padding: 8px 16px; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer;">રદ કરો (Cancel)</button>
+                <button id="dialog-btn-ok" style="background: var(--accent-navy); border: none; color: white; padding: 8px 16px; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer;">ઠીક છે (OK)</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes modalFadeIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
-    }
+    </style>
 
-    function renderProductList() {
-        const container = document.getElementById('product-list-container');
-        const configurator = document.getElementById('product-configurator');
-        
-        container.innerHTML = '';
-        
-        if (detectedProducts.length === 0) {
-            configurator.classList.add('hidden');
-            return;
-        }
-        
-        configurator.classList.remove('hidden');
-        
-        detectedProducts.forEach(prod => {
-            const row = document.createElement('div');
-            row.className = 'product-row';
-            
-            const left = document.createElement('div');
-            left.style.display = 'flex';
-            left.style.flexDirection = 'column';
-            left.style.gap = '2px';
-            left.style.minWidth = '0';
-            left.style.flexGrow = '1';
-            
-            const badge = document.createElement('span');
-            badge.className = 'barcode-badge';
-            badge.style.alignSelf = 'flex-start';
-            badge.innerText = prod.barcode;
-            
-            const title = document.createElement('div');
-            title.className = 'product-title-text';
-            title.innerText = prod.title;
-            title.title = prod.title;
-            
-            left.appendChild(badge);
-            left.appendChild(title);
-            
-            const right = document.createElement('div');
-            
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'product-price-input';
-            input.value = prod.price;
-            input.dataset.key = prod.key;
-            input.oninput = (e) => {
-                prod.price = e.target.value;
-                prod.userEdited = true;
-            };
-            
-            right.appendChild(input);
-            row.appendChild(left);
-            row.appendChild(right);
-            container.appendChild(row);
-        });
-    }
+    <!-- Data Injection & LocalStorage Management -->
+    <script>
+        // Default static data recovered from Excel
+        const defaultData = {
+            title: "ગેલેક્ષી STOCK (ગાયત્રી)",
+            date: "",
+            grand_totals: { total_kapan: 0, total_pcs: 0, total_carat: 0 },
+            groups: [],
+            subtotals: []
+        };
 
-    function applyDefaultPriceToAll() {
-        const defaultPrice = document.getElementById('mrp').value;
-        detectedProducts.forEach(prod => {
-            prod.price = defaultPrice;
-            prod.userEdited = false;
-        });
-        renderProductList();
-    }
+        // Custom Dialog Manager
+        const dialogOverlay = document.getElementById('custom-dialog-overlay');
+        const dialogHeader = document.getElementById('dialog-header');
+        const dialogBody = document.getElementById('dialog-body');
+        const dialogInputContainer = document.getElementById('dialog-input-container');
+        const dialogPromptInput = document.getElementById('dialog-prompt-input');
+        const dialogBtnCancel = document.getElementById('dialog-btn-cancel');
+        const dialogBtnOk = document.getElementById('dialog-btn-ok');
 
-    document.getElementById('mrp').addEventListener('input', (e) => {
-        const newDefault = e.target.value;
-        detectedProducts.forEach(prod => {
-            if (!prod.userEdited) {
-                prod.price = newDefault;
-            }
-        });
-        const inputs = document.querySelectorAll('.product-price-input');
-        inputs.forEach(input => {
-            const key = input.dataset.key;
-            const prod = detectedProducts.find(p => p.key === key);
-            if (prod && !prod.userEdited) {
-                input.value = newDefault;
-            }
-        });
-        lastDefaultMRP = newDefault;
-    });
+        let dialogResolve = null;
 
-    async function processSmartPDF() {
-        const mrpText = document.getElementById('mrp').value;
+        function showCustomDialog(type, title, message, defaultValue = '') {
+            return new Promise((resolve) => {
+                dialogResolve = resolve;
+                
+                // Cleanup extra buttons if they exist from previous calls
+                const extraBtn = document.getElementById('dialog-btn-extra');
+                if (extraBtn) extraBtn.remove();
 
-        if (!selectedFile) {
-            alert("Please select a PDF file first!");
-            return;
-        }
-
-        // Change Status Log
-        updateStatus("SCANNING LABELS...", "warning");
-
-        try {
-            const arrayBuffer = await selectedFile.arrayBuffer();
-            
-            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
-            const pdfTextDoc = await loadingTask.promise;
-            
-            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-            const pages = pdfDoc.getPages();
-            const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-
-            let totalMatches = 0;
-
-            for (let i = 0; i < pdfTextDoc.numPages; i++) {
-                const textPage = await pdfTextDoc.getPage(i + 1);
-                const textContent = await textPage.getTextContent();
-                const pageLib = pages[i];
-
-                // Collect all "NEW" items on this page
-                const newItemsOnPage = textContent.items.filter(item => {
-                    const cleanStr = item.str.trim();
-                    return cleanStr === "New" || cleanStr === "NEW" || cleanStr.includes("New");
-                });
-
-                // Group the "NEW" items on this page into columns by X coordinate
-                const colsMap = [];
-                newItemsOnPage.forEach(item => {
-                    const cx = item.transform[4];
-                    let existingCol = colsMap.find(c => Math.abs(c.x - cx) < 30);
-                    if (!existingCol) {
-                        existingCol = { x: cx, items: [] };
-                        colsMap.push(existingCol);
-                    }
-                    existingCol.items.push(item);
-                });
-
-                // Sort columns by x coordinate
-                colsMap.sort((a, b) => a.x - b.x);
-
-                // Compute column width spacing
-                let colWidth = 180; // default label width fallback
-                if (colsMap.length > 1) {
-                    let totalSpacing = 0;
-                    for (let j = 0; j < colsMap.length - 1; j++) {
-                        totalSpacing += colsMap[j+1].x - colsMap[j].x;
-                    }
-                    colWidth = totalSpacing / (colsMap.length - 1);
-                }
-
-                // Determine the right boundary for each column based on its items and title lines
-                colsMap.forEach(col => {
-                    let maxRight = 0;
-                    col.items.forEach(newItem => {
-                        const x_new = newItem.transform[4];
-                        const y_new = newItem.transform[5];
-                        
-                        // Find any title items directly above this label
-                        const titleItems = textContent.items.filter(other => {
-                            const ox = other.transform[4];
-                            const oy = other.transform[5];
-                            // Y is ~10 points above NEW, X is in this label's horizontal column range
-                            return Math.abs(oy - (y_new + 10)) < 3 && 
-                                   ox >= x_new - 10 && 
-                                   ox < x_new + colWidth - 10;
-                        });
-
-                        titleItems.forEach(tItem => {
-                            const rEdge = tItem.transform[4] + tItem.width;
-                            if (rEdge > maxRight) {
-                                maxRight = rEdge;
-                            }
-                        });
-                    });
-
-                    // Fallback to 82% of the column width if no title lines or they are very short
-                    const fallbackWidth = colWidth * 0.82;
-                    col.rightEdge = Math.max(maxRight, col.x + fallbackWidth);
-                });
-
-                textContent.items.forEach((item, k) => {
-                    const cleanStr = item.str.trim();
+                // Reset default button styles
+                dialogBtnCancel.style.display = 'block';
+                dialogBtnCancel.style.background = '#f1f5f9';
+                dialogBtnCancel.style.color = 'var(--text-secondary)';
+                dialogBtnCancel.innerText = 'રદ કરો (Cancel)';
+                
+                dialogBtnOk.style.display = 'block';
+                dialogBtnOk.style.background = 'var(--accent-navy)';
+                dialogBtnOk.innerText = 'ઠીક છે (OK)';
+                
+                let iconHtml = '';
+                if (type === 'alert') {
+                    iconHtml = '<i data-lucide="info" style="width:18px;height:18px;color:#2563eb;"></i>';
+                    dialogBtnCancel.style.display = 'none';
+                    dialogInputContainer.style.display = 'none';
+                    dialogBtnOk.style.background = '#002d62';
+                    dialogBtnOk.innerText = 'ઠીક છે (OK)';
+                } else if (type === 'confirm') {
+                    iconHtml = '<i data-lucide="help-circle" style="width:18px;height:18px;color:#dc2626;"></i>';
+                    dialogBtnCancel.style.display = 'block';
+                    dialogInputContainer.style.display = 'none';
+                    dialogBtnOk.style.background = '#dc2626';
+                    dialogBtnOk.innerText = 'હા (OK)';
+                } else if (type === 'prompt') {
+                    iconHtml = '<i data-lucide="edit-2" style="width:18px;height:18px;color:#002d62;"></i>';
+                    dialogBtnCancel.style.display = 'block';
+                    dialogInputContainer.style.display = 'block';
+                    dialogPromptInput.value = defaultValue;
+                    dialogBtnOk.style.background = '#002d62';
+                    dialogBtnOk.innerText = 'સેવ કરો (Save)';
+                } else if (type === 'delete-option') {
+                    iconHtml = '<i data-lucide="trash-2" style="width:18px;height:18px;color:#dc2626;"></i>';
+                    dialogInputContainer.style.display = 'none';
                     
-                    if (cleanStr === "New" || cleanStr === "NEW" || cleanStr.includes("New")) {
-                        totalMatches++;
+                    // Button 1: Normal OUT
+                    dialogBtnOk.innerText = 'જાવક કરો (Normal OUT)';
+                    dialogBtnOk.style.background = '#d97706'; // Dark amber color for warning/OUT
+                    
+                    // Button 2: Delete Mistake (Extra Button)
+                    const btnMistake = document.createElement('button');
+                    btnMistake.id = 'dialog-btn-extra';
+                    btnMistake.style.cssText = 'background: #dc2626; border: none; color: white; padding: 8px 16px; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer;';
+                    btnMistake.innerText = 'ભૂલથી ઉમેરેલ (Delete Mistake)';
+                    
+                    btnMistake.addEventListener('click', () => {
+                        dialogOverlay.style.display = 'none';
+                        const resolveTemp = dialogResolve;
+                        dialogResolve = null;
+                        btnMistake.remove();
+                        resolveTemp('mistake');
+                    });
+                    
+                    // Insert before the OK button in the footer
+                    dialogBtnOk.parentNode.insertBefore(btnMistake, dialogBtnOk);
+                }
 
-                        const x = item.transform[4];
-                        const y = item.transform[5];
-                        
-                        // Find which column this item belongs to
-                        const col = colsMap.find(c => Math.abs(c.x - x) < 30);
-                        const rightEdge = col ? col.rightEdge : (x + colWidth * 0.82);
+                dialogHeader.innerHTML = `${iconHtml} <span>${title}</span>`;
+                dialogBody.innerText = message;
+                
+                dialogOverlay.style.display = 'flex';
+                lucide.createIcons();
 
-                        // Search backwards for the first barcode-like item
-                        let barcode = "";
-                        let barcodeIdx = -1;
-                        for (let searchIdx = k - 1; searchIdx >= 0; searchIdx--) {
-                            const candStr = textContent.items[searchIdx].str.trim();
-                            if (isBarcodeLike(candStr)) {
-                                barcode = candStr;
-                                barcodeIdx = searchIdx;
-                                break;
-                            }
-                        }
-                        
-                        // Collect title items between barcodeIdx and k
-                        const startIdx = barcodeIdx !== -1 ? barcodeIdx + 1 : Math.max(0, k - 5);
-                        let titleLines = [];
-                        for (let tIdx = startIdx; tIdx < k; tIdx++) {
-                            const tItem = textContent.items[tIdx];
-                            const tStr = tItem.str.trim();
-                            if (tStr && tStr.toLowerCase() !== "new" && !isBarcodeLike(tStr)) {
-                                titleLines.push(tItem);
-                            }
-                        }
-                        
-                        // Sort title lines by Y descending (top-to-bottom)
-                        titleLines.sort((a, b) => b.transform[5] - a.transform[5]);
-                        const titleText = titleLines.map(c => c.str.trim()).join(" ");
-                        const normTitle = titleText.toLowerCase().replace(/[^a-z0-9]/g, "");
-                        const key = barcode || normTitle || `Label_${Math.round(x)}_${Math.round(y)}`;
-                        
-                        let finalMrpText = mrpText;
-                        const matchedProd = detectedProducts.find(p => p.key === key);
-                        if (matchedProd) {
-                            finalMrpText = matchedProd.price;
-                        }
+                if (type === 'prompt') {
+                    setTimeout(() => dialogPromptInput.focus(), 50);
+                }
+            });
+        }
 
-                        // Calculate the width of the MRP text to align it to the right
-                        const textWidth = helveticaFont.widthOfTextAtSize(finalMrpText, 8.5);
-                        // Align the text so it ends at rightEdge (minus 2pt right margin padding)
-                        const drawX = rightEdge - textWidth - 2;
+        dialogBtnOk.addEventListener('click', () => {
+            if (dialogResolve) {
+                dialogOverlay.style.display = 'none';
+                const resolveTemp = dialogResolve;
+                dialogResolve = null;
+                
+                // Cleanup extra button if exists
+                const extraBtn = document.getElementById('dialog-btn-extra');
+                if (extraBtn) extraBtn.remove();
+                
+                const isPrompt = dialogInputContainer.style.display === 'block';
+                const isDeleteOption = dialogBtnOk.innerText.includes('Normal OUT');
+                
+                if (isPrompt) {
+                    resolveTemp(dialogPromptInput.value.trim());
+                } else if (isDeleteOption) {
+                    resolveTemp('out');
+                } else {
+                    resolveTemp(true);
+                }
+            }
+        });
 
-                        pageLib.drawText(finalMrpText, {
-                            x: drawX, 
-                            y: y,  
-                            size: 8.5,   
-                            font: helveticaFont,
-                            color: PDFLib.rgb(0, 0, 0)
-                        });
+        dialogBtnCancel.addEventListener('click', () => {
+            if (dialogResolve) {
+                dialogOverlay.style.display = 'none';
+                const resolveTemp = dialogResolve;
+                dialogResolve = null;
+                
+                // Cleanup extra button if exists
+                const extraBtn = document.getElementById('dialog-btn-extra');
+                if (extraBtn) extraBtn.remove();
+                
+                const isPrompt = dialogInputContainer.style.display === 'block';
+                if (isPrompt) {
+                    resolveTemp(null);
+                } else {
+                    resolveTemp(false);
+                }
+            }
+        });
+
+        // ── Dynamic today key ──
+        const _todayKey = (() => {
+            const n = new Date();
+            return n.getFullYear() + '-' +
+                String(n.getMonth() + 1).padStart(2, '0') + '-' +
+                String(n.getDate()).padStart(2, '0');
+        })();
+
+        // ════════════════════════════════════════════════════════
+        // DATA ARCHITECTURE: LocalStorage (Primary) + Firebase (Authoritative Sync)
+        // Instant load, absolute consistency, no stale overwrites!
+        // ════════════════════════════════════════════════════════
+        const LS_KEY = 'galaxy_stock_multi_data';
+        let multiData;
+        let _appReady = false; // blocks saves/edits until Firebase completes first sync
+
+        // ── Step 1: Load from LocalStorage instantly so user sees UI immediately ──
+        try {
+            const cached = localStorage.getItem(LS_KEY);
+            if (cached) {
+                multiData = JSON.parse(cached);
+                // Ensure today's date slot exists in local cache
+                if (!multiData.dates[_todayKey]) {
+                    const sorted = Object.keys(multiData.dates).sort();
+                    const last = sorted[sorted.length - 1];
+                    const cloned = JSON.parse(JSON.stringify(multiData.dates[last] || defaultData));
+                    const [y, mo, da] = _todayKey.split('-');
+                    cloned.date = `${da}-${mo}-${y}`;
+                    multiData.dates[_todayKey] = cloned;
+                }
+                multiData.active_date = _todayKey;
+            } else {
+                multiData = {
+                    active_date: _todayKey,
+                    dates: {
+                        [_todayKey]: JSON.parse(JSON.stringify(defaultData))
                     }
+                };
+            }
+        } catch(e) {
+            multiData = {
+                active_date: _todayKey,
+                dates: {
+                    [_todayKey]: JSON.parse(JSON.stringify(defaultData))
+                }
+            };
+        }
+        let stockData = null;
+
+        // Bulletproof helper to safely normalize data structures and prevent undefined property crashes
+        function syncStockDataReference() {
+            if (!multiData || !multiData.dates || !multiData.active_date) {
+                multiData = {
+                    active_date: _todayKey,
+                    dates: {
+                        [_todayKey]: JSON.parse(JSON.stringify(defaultData))
+                    }
+                };
+            }
+            // Normalize all dates in the dataset
+            Object.keys(multiData.dates).forEach(dateKey => {
+                const dayData = multiData.dates[dateKey];
+                if (dayData) {
+                    if (!dayData.groups) dayData.groups = [];
+                    dayData.groups.forEach(group => {
+                        if (!group.items) group.items = [];
+                        if (!group.subtotals) group.subtotals = [];
+                    });
+                    // Sort the groups naturally
+                    dayData.groups.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+                    if (!dayData.subtotals) dayData.subtotals = [];
+                    if (!dayData.grand_totals) dayData.grand_totals = { total_kapan: 0, total_pcs: 0, total_carat: 0 };
+                }
+            });
+
+            if (!multiData.dates[multiData.active_date]) {
+                multiData.dates[multiData.active_date] = JSON.parse(JSON.stringify(defaultData));
+            }
+            stockData = multiData.dates[multiData.active_date];
+        }
+
+        // Initialize first reference
+        syncStockDataReference();
+
+        // ── Disable input buttons during initial sync ──
+        function setAppBusy(busy) {
+            const btn1 = document.getElementById('btn-add-group');
+            const btn2 = document.getElementById('btn-add-kapan');
+            [btn1, btn2].forEach(btn => {
+                if (btn) {
+                    btn.disabled = busy;
+                    btn.style.opacity = busy ? '0.5' : '1';
+                    btn.style.cursor = busy ? 'not-allowed' : 'pointer';
+                }
+            });
+        }
+
+        // ── Cloud Sync Status Indicator ──
+        function setSyncStatus(state, label) {
+            const el = document.getElementById('sync-indicator');
+            const lbl = document.getElementById('sync-label');
+            if (!el || !lbl) return;
+            el.className = '';
+            el.classList.add(state);
+            lbl.textContent = label;
+        }
+
+        // ── Save helper: local first (instant), then background firebase sync ──
+        function saveToLocal() {
+            multiData.dates[multiData.active_date] = stockData;
+            
+            // 1. Instantly save to local cache
+            try {
+                localStorage.setItem(LS_KEY, JSON.stringify(multiData));
+            } catch(e) {}
+
+            // 2. Sync to Firebase in background
+            setSyncStatus('syncing', 'Saving...');
+            db.ref(DB_PATH).set(JSON.parse(JSON.stringify(multiData)))
+                .then(() => setSyncStatus('synced', 'Synced ✓'))
+                .catch(err => {
+                    console.error('Firebase save error:', err);
+                    setSyncStatus('error', 'Offline ⚠');
+                });
+        }
+
+        // ── Step 2: Background Cloud Sync (Loads Firebase in background) ──
+        setAppBusy(true);
+        setSyncStatus('syncing', 'Syncing...');
+
+        db.ref(DB_PATH).once('value').then(snapshot => {
+            const fbData = snapshot.val();
+            const todayNow = getTodayKey();
+
+            if (fbData && fbData.dates) {
+                // Firebase is the authoritative copy, load it
+                multiData = fbData;
+                
+                // Ensure today's date slot exists
+                let isNewDateCreated = false;
+                if (!multiData.dates[todayNow]) {
+                    const sorted = Object.keys(multiData.dates).sort();
+                    const last = sorted[sorted.length - 1];
+                    const cloned = JSON.parse(JSON.stringify(multiData.dates[last] || defaultData));
+                    const [y, mo, da] = todayNow.split('-');
+                    cloned.date = `${da}-${mo}-${y}`;
+                    multiData.dates[todayNow] = cloned;
+                    isNewDateCreated = true;
+                }
+                multiData.active_date = todayNow;
+                syncStockDataReference();
+                
+                // Always recalculate grand totals on page load to heal any stale or zero totals in the database
+                recalculateGrandTotals();
+            } else {
+                // First time ever: initialize database
+                multiData = {
+                    active_date: todayNow,
+                    dates: {
+                        [todayNow]: JSON.parse(JSON.stringify(defaultData))
+                    }
+                };
+                db.ref(DB_PATH).set(JSON.parse(JSON.stringify(multiData)));
+            }
+
+            syncStockDataReference();
+            _appReady = true;
+            setAppBusy(false);
+            setSyncStatus('synced', 'Synced ✓');
+
+            // Save to LocalStorage cache
+            try {
+                localStorage.setItem(LS_KEY, JSON.stringify(multiData));
+            } catch(e) {}
+
+            // Populate and render UI
+            updateKPIs();
+            renderStockCards('');
+            initDatePicker();
+            renderMasterGroupTable();
+            populateGroupDropdown();
+            console.log("✅ Cloud load complete.");
+            
+        }).catch(err => {
+            console.error('Firebase sync failed, using cached offline data:', err);
+            _appReady = true;
+            setAppBusy(false);
+            setSyncStatus('error', 'Offline ⚠ (' + (err.code || err.message || 'Error') + ')');
+
+            // Fallback render of cached data
+            updateKPIs();
+            renderStockCards('');
+            initDatePicker();
+            renderMasterGroupTable();
+            populateGroupDropdown();
+        });
+
+        // ── Step 3: Real-time update listener for multi-device sync ──
+        db.ref(DB_PATH).on('value', snapshot => {
+            if (!_appReady) return;
+            const fbData = snapshot.val();
+            if (!fbData || !fbData.dates) return;
+            
+            // Compare the entire dates data instead of just the active date
+            const fbDatesJson = JSON.stringify(fbData.dates);
+            const localDatesJson = JSON.stringify(multiData.dates);
+
+            if (fbDatesJson !== localDatesJson) {
+                const localActiveDate = multiData.active_date;
+                // Overwrite dates with newer remote updates
+                multiData.dates = fbData.dates;
+                syncStockDataReference();
+
+                // Sync remote updates into local storage
+                try {
+                    localStorage.setItem(LS_KEY, JSON.stringify(multiData));
+                } catch(e) {}
+
+                // Render remote changes instantly
+                updateKPIs();
+                renderStockCards(document.getElementById('search-bar')?.value || '');
+                renderMasterGroupTable();
+                setSyncStatus('synced', 'Synced ✓');
+                console.log("🔄 Realtime remote updates synced.");
+            }
+        });
+        // Returns today's date in YYYY-MM-DD format (device real time)
+
+
+        function getTodayKey() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Find and clone the stock data of the closest date strictly before newDate
+        function getClonedDataForDate(newDate) {
+            const sortedDates = Object.keys(multiData.dates).sort();
+            let targetDate = null;
+            for (let i = sortedDates.length - 1; i >= 0; i--) {
+                if (sortedDates[i] < newDate) {
+                    targetDate = sortedDates[i];
+                    break;
+                }
+            }
+            if (targetDate) {
+                return JSON.parse(JSON.stringify(multiData.dates[targetDate]));
+            } else {
+                return JSON.parse(JSON.stringify(defaultData));
+            }
+        }
+
+        // Switch active date to today and update stockData reference + UI
+        function switchToToday() {
+            const todayKey = getTodayKey();
+            if (multiData.active_date === todayKey) return; // already on today
+
+            let isNewDateCreated = false;
+            if (!multiData.dates[todayKey]) {
+                // Create today's date entry by cloning closest previous date
+                const cloned = getClonedDataForDate(todayKey);
+                const [y, mo, da] = todayKey.split('-');
+                cloned.date = `${da}-${mo}-${y}`;
+                multiData.dates[todayKey] = cloned;
+                isNewDateCreated = true;
+            }
+
+            multiData.active_date = todayKey;
+            syncStockDataReference();
+
+            if (isNewDateCreated) {
+                recalculateGrandTotals(); // This recalculates and saves to Firebase/LocalStorage
+            } else {
+                try {
+                    localStorage.setItem(LS_KEY, JSON.stringify(multiData));
+                } catch(e) {}
+            }
+
+            // Sync date picker UI
+            const dp = document.getElementById('header-date-picker');
+            if (dp) dp.value = todayKey;
+
+            updateKPIs();
+            renderStockCards(document.getElementById('search-bar') ? document.getElementById('search-bar').value : '');
+        }
+
+        // Ensure active date is today, switching and alerting the user if needed
+        function ensureActiveDateIsToday() {
+            const todayKey = getTodayKey();
+            if (multiData.active_date !== todayKey) {
+                switchToToday();
+                
+                const parts = todayKey.split('-');
+                const displayD = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                
+                // Update dashboard header-date
+
+                
+                // Alert user
+                showCustomDialog('alert', 'તારીખ બદલાઈ (Date Switched)', `આજની તારીખ ${displayD} પર ઓટોમેટિક સ્વિચ કરવામાં આવ્યું છે જેથી જૂનો ડેટા સચવાયેલો રહે!`);
+            }
+        }
+
+        // Format numbers in Indian Style
+        function formatNumber(num) {
+            if (num === null || num === undefined || isNaN(num)) return '-';
+            return num.toLocaleString('en-IN');
+        }
+
+        function formatCarat(num) {
+            if (num === null || num === undefined || isNaN(num)) return '-';
+            return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Update indicators in dashboard
+        function updateKPIs() {
+            const kpiLots = document.getElementById('kpi-lots');
+            const kpiPcs = document.getElementById('kpi-pcs');
+            const kpiCarats = document.getElementById('kpi-carats');
+            if (kpiLots) kpiLots.innerText = formatNumber(stockData.grand_totals.total_kapan);
+            if (kpiPcs) kpiPcs.innerText = formatNumber(stockData.grand_totals.total_pcs);
+            if (kpiCarats) kpiCarats.innerText = formatCarat(stockData.grand_totals.total_carat);
+
+            // Update inline KPIs (No commas/formatting, Carat only has decimal point)
+            const inlineKapan = document.getElementById('ctrl-kpi-kapan');
+            const inlinePcs = document.getElementById('ctrl-kpi-pcs');
+            const inlineCarats = document.getElementById('ctrl-kpi-carats');
+            
+            if (inlineKapan) inlineKapan.innerText = Math.round(stockData.grand_totals.total_kapan || 0).toString();
+            if (inlinePcs) inlinePcs.innerText = Math.round(stockData.grand_totals.total_pcs || 0).toString();
+            if (inlineCarats) inlineCarats.innerText = (stockData.grand_totals.total_carat || 0).toFixed(2);
+        }
+
+        // Recalculate Grand Totals dynamically for a specific date in JS
+        function recalculateTotalsForDate(dateKey) {
+            const dayData = multiData.dates[dateKey];
+            if (!dayData) return;
+
+            let totalLots = 0;
+            let totalPcs = 0;
+            let totalCarats = 0.0;
+
+            dayData.groups.forEach(group => {
+                let groupPcs = 0;
+                let groupCarat = 0.0;
+                
+                group.items.forEach(item => {
+                    if (!item.is_subtotal) {
+                        const pcs = parseInt(item.pcs);
+                        const carat = parseFloat(item.carat);
+                        if (!isNaN(pcs)) groupPcs += pcs;
+                        if (!isNaN(carat)) groupCarat += carat;
+                    }
+                });
+                
+                totalLots += group.items.filter(item => !item.is_subtotal).length;
+                totalPcs += groupPcs;
+                totalCarats += groupCarat;
+            });
+
+            dayData.grand_totals = {
+                "total_kapan": totalLots,
+                "total_pcs": totalPcs,
+                "total_carat": Number(totalCarats.toFixed(2))
+            };
+        }
+
+        // Recalculate Grand Totals dynamically in JS
+        function recalculateGrandTotals() {
+            recalculateTotalsForDate(multiData.active_date);
+            saveToLocal();
+            updateKPIs();
+        }
+
+        // Initialize KPIs
+        updateKPIs();
+
+        // Helper to collect all lots mapped by kapan name
+        function getItemsMap(data) {
+            const map = {};
+            if (!data || !data.groups) return map;
+            data.groups.forEach(g => {
+                g.items.forEach(item => {
+                    if (!item.is_subtotal && item.kapan && item.kapan.trim() !== '') {
+                        map[item.kapan] = {
+                            kapan: item.kapan,
+                            pcs: parseInt(item.pcs) || 0,
+                            carat: parseFloat(item.carat) || 0.0,
+                            groupName: g.name
+                        };
+                    }
+                });
+            });
+            return map;
+        }
+
+        // Generate dynamic IN-OUT report compared to previous date
+        function renderDailyReport() {
+            const currentD = multiData.active_date;
+            const sortedDates = Object.keys(multiData.dates).sort();
+            const currentIndex = sortedDates.indexOf(currentD);
+            
+            let prevData = { groups: [] };
+            if (currentIndex > 0) {
+                const prevD = sortedDates[currentIndex - 1];
+                prevData = multiData.dates[prevD];
+            }
+
+            const parts = currentD.split('-');
+            document.getElementById('report-date-display').innerText = `તારીખ: ${parts[2]}-${parts[1]}-${parts[0]}`;
+
+            const prevMap = getItemsMap(prevData);
+            const currMap = getItemsMap(stockData);
+
+            const inItems = [];
+            const outItems = [];
+
+            let totalInPcs = 0;
+            let totalInCarats = 0.0;
+            let totalOutPcs = 0;
+            let totalOutCarats = 0.0;
+
+            // Find IN flows & positive changes
+            Object.keys(currMap).forEach(kapan => {
+                const curr = currMap[kapan];
+                const prev = prevMap[kapan];
+
+                if (!prev) {
+                    inItems.push({
+                        group: curr.groupName,
+                        kapan: curr.kapan,
+                        pcs: curr.pcs,
+                        carat: curr.carat
+                    });
+                    totalInPcs += curr.pcs;
+                    totalInCarats += curr.carat;
+                } else {
+                    const diffPcs = curr.pcs - prev.pcs;
+                    // Round to 2 decimal places to prevent javascript floating point inaccuracies
+                    const currCaratInt = Math.round(curr.carat * 100);
+                    const prevCaratInt = Math.round(prev.carat * 100);
+                    const diffCarat = (currCaratInt - prevCaratInt) / 100;
+
+                    if (diffPcs > 0 || diffCarat > 0) {
+                        const incPcs = Math.max(0, diffPcs);
+                        const incCarat = Math.max(0.0, diffCarat);
+                        inItems.push({
+                            group: curr.groupName,
+                            kapan: curr.kapan,
+                            pcs: incPcs,
+                            carat: incCarat
+                        });
+                        totalInPcs += incPcs;
+                        totalInCarats += incCarat;
+                    } else if (diffPcs < 0 || diffCarat < 0) {
+                        const decPcs = Math.max(0, -diffPcs);
+                        const decCarat = Math.max(0.0, -diffCarat);
+                        outItems.push({
+                            group: curr.groupName,
+                            kapan: curr.kapan,
+                            pcs: decPcs,
+                            carat: decCarat
+                        });
+                        totalOutPcs += decPcs;
+                        totalOutCarats += decCarat;
+                    }
+                }
+            });
+
+            // Find OUT flows (totally deleted / closed kapans)
+            Object.keys(prevMap).forEach(kapan => {
+                const prev = prevMap[kapan];
+                const curr = currMap[kapan];
+
+                if (!curr) {
+                    outItems.push({
+                        group: prev.groupName,
+                        kapan: prev.kapan,
+                        pcs: prev.pcs,
+                        carat: prev.carat
+                    });
+                    totalOutPcs += prev.pcs;
+                    totalOutCarats += prev.carat;
+                }
+            });
+
+            const inTbody = document.getElementById('report-in-tbody');
+            const outTbody = document.getElementById('report-out-tbody');
+
+            inTbody.innerHTML = '';
+            outTbody.innerHTML = '';
+
+            if (inItems.length === 0) {
+                inTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 12px 6px;">આજે કોઈ નવી આવક નથી.</td></tr>';
+            } else {
+                inItems.forEach(item => {
+                    inTbody.innerHTML += `
+                        <tr>
+                            <td>${item.group}</td>
+                            <td>${item.kapan}</td>
+                            <td style="text-align: right; color: #059669; font-weight: 700; font-variant-numeric: tabular-nums;">+${formatNumber(item.pcs)}</td>
+                            <td style="text-align: right; color: #059669; font-weight: 700; font-variant-numeric: tabular-nums;">+${formatCarat(item.carat)}</td>
+                        </tr>
+                    `;
                 });
             }
 
-            if (totalMatches === 0) {
-                updateStatus("WORD 'NEW' NOT DETECTED", "error");
+            if (outItems.length === 0) {
+                outTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 12px 6px;">આજે કોઈ નવી જાવક નથી.</td></tr>';
+            } else {
+                outItems.forEach(item => {
+                    outTbody.innerHTML += `
+                        <tr>
+                            <td>${item.group}</td>
+                            <td>${item.kapan}</td>
+                            <td style="text-align: right; color: #dc2626; font-weight: 700; font-variant-numeric: tabular-nums;">-${formatNumber(item.pcs)}</td>
+                            <td style="text-align: right; color: #dc2626; font-weight: 700; font-variant-numeric: tabular-nums;">-${formatCarat(item.carat)}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            document.getElementById('report-in-pcs').innerText = `+${formatNumber(totalInPcs)}`;
+            document.getElementById('report-in-carats').innerText = `+${formatCarat(totalInCarats)}`;
+            document.getElementById('report-out-pcs').innerText = `-${formatNumber(totalOutPcs)}`;
+            document.getElementById('report-out-carats').innerText = `-${formatCarat(totalOutCarats)}`;
+
+            const netPcs = totalInPcs - totalOutPcs;
+            const netCarat = totalInCarats - totalOutCarats;
+            const netSignPcs = netPcs >= 0 ? '+' : '';
+            const netSignCarat = netCarat >= 0 ? '+' : '';
+
+            const netPcsEl = document.getElementById('report-net-pcs');
+            const netCaratsEl = document.getElementById('report-net-carats');
+
+            netPcsEl.innerText = `${netSignPcs}${formatNumber(netPcs)}`;
+            netCaratsEl.innerText = `${netSignCarat}${formatCarat(netCarat)}`;
+
+            if (netPcs >= 0) {
+                netPcsEl.style.color = '#059669';
+            } else {
+                netPcsEl.style.color = '#dc2626';
+            }
+
+            if (netCarat >= 0) {
+                netCaratsEl.style.color = '#059669';
+            } else {
+                netCaratsEl.style.color = '#dc2626';
+            }
+
+            lucide.createIcons();
+        }
+
+        // View switching logic
+        function switchView(viewName) {
+            // Remove active classes
+            document.querySelectorAll('.top-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.view-pane').forEach(pane => pane.style.display = 'none');
+            
+            if (viewName === 'stock') {
+                const topStock = document.getElementById('btn-top-stock');
+                if (topStock) topStock.classList.add('active');
+                document.getElementById('view-stock').style.display = 'flex';
+                renderStockCards(document.getElementById('search-bar').value);
+            } else if (viewName === 'report') {
+                const topReport = document.getElementById('btn-top-report');
+                if (topReport) topReport.classList.add('active');
+                document.getElementById('view-report').style.display = 'flex';
+                renderDailyReport();
+            } else if (viewName === 'master') {
+                const topMaster = document.getElementById('btn-top-master');
+                if (topMaster) topMaster.classList.add('active');
+                document.getElementById('view-master').style.display = 'flex';
+                renderMasterGroupTable();
+            }
+        }
+
+        // Keyboard Shortcuts & Modal Escape/Enter Keys
+        window.addEventListener('keydown', (e) => {
+            // Esc key logic
+            if (e.key === 'Escape') {
+                if (dialogOverlay.style.display === 'flex') {
+                    e.preventDefault();
+                    dialogBtnCancel.click(); // Cancels custom dialog
+                } else if (modal.style.display === 'flex') {
+                    e.preventDefault();
+                    modal.style.display = 'none';
+                } else if (modalGroup.style.display === 'flex') {
+                    e.preventDefault();
+                    modalGroup.style.display = 'none';
+                }
+            }
+
+            // Enter key logic for Custom Dialog
+            if (e.key === 'Enter') {
+                if (dialogOverlay.style.display === 'flex') {
+                    e.preventDefault();
+                    dialogBtnOk.click(); // Confirms custom dialog
+                }
+            }
+
+            // F-keys view switching
+            if (e.key === 'F4') {
+                e.preventDefault();
+                switchView('report');
+            } else if (e.key === 'F9') {
+                e.preventDefault();
+                switchView('stock');
+            } else if (e.key === 'F10') {
+                e.preventDefault();
+                switchView('master');
+            }
+        });
+
+        // Group Master Rendering & Management
+        function renderMasterGroupTable() {
+            const tbody = document.getElementById('master-group-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            stockData.groups.forEach(group => {
+                let groupPcs = 0;
+                let groupCarat = 0.0;
+                
+                group.items.forEach(item => {
+                    if (!item.is_subtotal) {
+                        const pcs = parseInt(item.pcs);
+                        const carat = parseFloat(item.carat);
+                        if (!isNaN(pcs)) groupPcs += pcs;
+                        if (!isNaN(carat)) groupCarat += carat;
+                    }
+                });
+
+                const lotsCount = group.items.filter(item => !item.is_subtotal).length;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 600; color: var(--accent-navy);">${group.name}</td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums;">${formatNumber(lotsCount)}</td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums;">${formatNumber(groupPcs)}</td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums;">${formatCarat(groupCarat)}</td>
+                    <td style="text-align: center;">
+                        <button onclick="editGroupName('${group.name}')" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-right: 6px;">
+                            <i data-lucide="edit-2" style="width:12px;height:12px;"></i> નામ બદલો (Edit)
+                        </button>
+                        <button onclick="deleteGroup('${group.name}')" style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                            <i data-lucide="trash-2" style="width:12px;height:12px;"></i> કાઢી નાખો (Delete)
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Initialize icons in the table
+            lucide.createIcons();
+        }
+
+        // Edit group name
+        async function editGroupName(oldName) {
+            const newName = await showCustomDialog('prompt', 'નામ બદલો (Rename)', `"${oldName}" ગ્રુપનું નવું નામ આપો:`, oldName);
+            if (newName === null) return;
+            const trimmed = newName.trim();
+            if (!trimmed) {
+                await showCustomDialog('alert', 'ભૂલ (Error)', "ગ્રુપનું નામ ખાલી હોઈ શકે નહીં!");
                 return;
             }
 
-            modifiedPdfBytes = await pdfDoc.save();
-
-            // Success Update
-            updateStatus(`READY: ${totalMatches} LABELS DETECTED.`, "ready");
-            
-            document.getElementById('download-btn').disabled = false;
-
-            // Turn LEDs Green for Ready state
-            document.getElementById('download-led').className = 'led led-green';
-            document.getElementById('preview-led').className = 'led led-green';
-
-            await renderPreview(modifiedPdfBytes);
-            
-        } catch (err) {
-            console.error(err);
-            updateStatus("ERROR IN CORE PROCESS", "error");
-        }
-    }
-
-    async function renderPreview(pdfBytes) {
-        const previewContainer = document.getElementById('preview-container');
-        previewContainer.innerHTML = '<div class="preview-loading">RENDERING VECTOR PREVIEW SHEETS...</div>';
-        
-        const previewOuter = document.getElementById('preview-outer');
-        previewOuter.classList.remove('hidden');
-        
-        try {
-            const loadingTask = pdfjsLib.getDocument({ data: pdfBytes.slice(0) });
-            const pdfDoc = await loadingTask.promise;
-            
-            previewContainer.innerHTML = '';
-            
-            for (let i = 1; i <= pdfDoc.numPages; i++) {
-                const page = await pdfDoc.getPage(i);
-                const viewport = page.getViewport({ scale: 1.5 });
-                
-                const canvas = document.createElement('canvas');
-                canvas.className = 'preview-canvas';
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                
-                const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport
-                };
-                
-                await page.render(renderContext).promise;
-                
-                const pageWrapper = document.createElement('div');
-                pageWrapper.className = 'preview-page-wrapper';
-                
-                const pageLabel = document.createElement('div');
-                pageLabel.className = 'preview-page-label';
-                pageLabel.innerText = `SHEET ${i} OF ${pdfDoc.numPages}`;
-                
-                pageWrapper.appendChild(canvas);
-                pageWrapper.appendChild(pageLabel);
-                
-                previewContainer.appendChild(pageWrapper);
+            if (trimmed.toLowerCase() !== oldName.toLowerCase()) {
+                const exists = stockData.groups.some(g => g.name.toLowerCase() === trimmed.toLowerCase());
+                if (exists) {
+                    await showCustomDialog('alert', 'ભૂલ (Error)', "આ ગ્રુપ નામ પહેલેથી જ અસ્તિત્વમાં છે!");
+                    return;
+                }
             }
-        } catch (err) {
-            console.error(err);
-            previewContainer.innerHTML = '<div class="preview-error">PREVIEW BOARD RENDER ERROR.</div>';
+
+            const group = stockData.groups.find(g => g.name === oldName);
+            if (group) {
+                group.name = trimmed;
+                recalculateGrandTotals();
+                populateGroupDropdown();
+                renderMasterGroupTable();
+                await showCustomDialog('alert', 'સફળ (Success)', "ગ્રુપનું નામ સફળતાપૂર્વક બદલાઈ ગયું છે!");
+            }
         }
-    }
 
-    function downloadPDF() {
-        if (!modifiedPdfBytes) {
-            alert("Please click Preview first!");
-            return;
+        // Delete group
+        async function deleteGroup(groupName) {
+            const confirmDelete = await showCustomDialog('confirm', 'ગ્રુપ કાઢી નાખો (Delete)', `શું તમે ખરેખર "${groupName}" ગ્રુપ અને તેની અંદરના તમામ લોટ્સ કાઢી નાખવા માંગો છો? આ ક્રિયા પાછી ખેંચી શકાશે નહીં.`);
+            if (!confirmDelete) return;
+
+            stockData.groups = stockData.groups.filter(g => g.name !== groupName);
+            recalculateGrandTotals();
+            populateGroupDropdown();
+            renderMasterGroupTable();
+            await showCustomDialog('alert', 'સફળ (Success)', "ગ્રુપ સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું છે!");
+        }
+
+        // Helper to open modal
+        function openAddGroupModal() {
+            resetModalPosition('modal-add-group-content');
+            document.getElementById('modal-add-group').style.display = 'flex';
+            document.getElementById('modal-group-error').style.display = 'none';
+            // Automatically focus and blink cursor inside the input field
+            setTimeout(() => {
+                const input = document.getElementById('input-group-name');
+                if (input) input.focus();
+            }, 50);
+        }
+
+        // Delete individual Kapan (lot)
+        async function deleteKapan(groupName, kapanName) {
+            const action = await showCustomDialog('delete-option', 'કાપણ નીકાળો (Remove Kapan)', `તમે "${kapanName}" કાપણને કઈ રીતે નીકાળવા માંગો છો?`);
+            if (!action || action === false) return; // Cancelled
+
+            const isMistake = (action === 'mistake');
+
+            const group = stockData.groups.find(g => g.name === groupName);
+            if (group) {
+                // Delete from today
+                group.items = group.items.filter(item => item.kapan !== kapanName);
+                
+                // Recalculate Serial numbers just in case
+                let counter = 1;
+                group.items.forEach(item => {
+                    if (!item.is_subtotal) {
+                        item.s_no = String(counter++);
+                    }
+                });
+
+                if (isMistake) {
+                    // Delete from previous date's stock too so it doesn't show in today's OUT report
+                    const sortedDates = Object.keys(multiData.dates).sort();
+                    const currentIndex = sortedDates.indexOf(multiData.active_date);
+                    if (currentIndex > 0) {
+                        const prevD = sortedDates[currentIndex - 1];
+                        const prevData = multiData.dates[prevD];
+                        if (prevData && prevData.groups) {
+                            const prevGroup = prevData.groups.find(g => g.name === groupName);
+                            if (prevGroup) {
+                                prevGroup.items = prevGroup.items.filter(item => item.kapan !== kapanName);
+                                let prevCounter = 1;
+                                prevGroup.items.forEach(item => {
+                                    if (!item.is_subtotal) {
+                                        item.s_no = String(prevCounter++);
+                                    }
+                                });
+                                // Recalculate totals for previous date in memory
+                                recalculateTotalsForDate(prevD);
+                            }
+                        }
+                    }
+                }
+
+                recalculateGrandTotals(); // Updates, saves to LocalStorage, and refreshes KPIs
+                renderStockCards(document.getElementById('search-bar').value);
+                
+                if (isMistake) {
+                    await showCustomDialog('alert', 'સફળ (Success)', "કાપણ ભૂલથી ઉમેરેલ તરીકે કાઢી નાખવામાં આવ્યું છે!");
+                } else {
+                    await showCustomDialog('alert', 'સફળ (Success)', "કાપણ જાવક તરીકે સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું છે!");
+                }
+            }
+        }
+
+        // Toggle Select All checkboxes in a stock card
+        function toggleSelectAllKapan(masterCheckbox, groupName) {
+            const safeId = groupName.replace(/[^a-zA-Z0-9-]/g, '_');
+            const header = document.getElementById(`card-header-${safeId}`);
+            if (header) {
+                const card = header.closest('.stock-card');
+                if (card) {
+                    const checkboxes = card.querySelectorAll('.kapan-checkbox');
+                    checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+                }
+            }
+            updateBulkDeleteButton(groupName);
+        }
+
+        // Update bulk delete button visibility and selected count
+        function updateBulkDeleteButton(groupName) {
+            const safeId = groupName.replace(/[^a-zA-Z0-9-]/g, '_');
+            const header = document.getElementById(`card-header-${safeId}`);
+            if (header) {
+                const card = header.closest('.stock-card');
+                if (card) {
+                    const checkedBoxes = card.querySelectorAll('.kapan-checkbox:checked');
+                    const btn = document.getElementById(`btn-bulk-delete-${safeId}`);
+                    const selectAllCb = card.querySelector('.select-all-kapan');
+                    const totalCheckboxes = card.querySelectorAll('.kapan-checkbox');
+                    
+                    // Keep master checkbox in sync
+                    if (selectAllCb) {
+                        selectAllCb.checked = (checkedBoxes.length === totalCheckboxes.length && totalCheckboxes.length > 0);
+                    }
+                    
+                    if (btn) {
+                        if (checkedBoxes.length > 0) {
+                            btn.style.display = 'inline-flex';
+                            btn.querySelector('.bulk-count').innerText = checkedBoxes.length;
+                        } else {
+                            btn.style.display = 'none';
+                        }
+                    }
+                }
+            }
+        }
+
+        // Perform bulk delete on selected items
+        async function performBulkDelete(groupName) {
+            const safeId = groupName.replace(/[^a-zA-Z0-9-]/g, '_');
+            const header = document.getElementById(`card-header-${safeId}`);
+            if (!header) return;
+            const card = header.closest('.stock-card');
+            if (!card) return;
+
+            const checkedRows = Array.from(card.querySelectorAll('.kapan-row')).filter(row => {
+                const cb = row.querySelector('.kapan-checkbox');
+                return cb && cb.checked;
+            });
+
+            if (checkedRows.length === 0) return;
+
+            const action = await showCustomDialog('delete-option', 'બલ્ક કાપણ નીકાળો (Bulk Remove)', `તમે પસંદ કરેલા ${checkedRows.length} કાપણને કઈ રીતે નીકાળવા માંગો છો?`);
+            if (!action || action === false) return; // Cancelled
+
+            const isMistake = (action === 'mistake');
+            const kapansToDelete = checkedRows.map(row => row.dataset.kapan);
+
+            const group = stockData.groups.find(g => g.name === groupName);
+            if (group) {
+                // Delete from today
+                group.items = group.items.filter(item => item.is_subtotal || !kapansToDelete.includes(item.kapan));
+                
+                // Recalculate Serial numbers
+                let counter = 1;
+                group.items.forEach(item => {
+                    if (!item.is_subtotal) {
+                        item.s_no = String(counter++);
+                    }
+                });
+
+                if (isMistake) {
+                    // Delete from previous date's stock too
+                    const sortedDates = Object.keys(multiData.dates).sort();
+                    const currentIndex = sortedDates.indexOf(multiData.active_date);
+                    if (currentIndex > 0) {
+                        const prevD = sortedDates[currentIndex - 1];
+                        const prevData = multiData.dates[prevD];
+                        if (prevData && prevData.groups) {
+                            const prevGroup = prevData.groups.find(g => g.name === groupName);
+                            if (prevGroup) {
+                                prevGroup.items = prevGroup.items.filter(item => item.is_subtotal || !kapansToDelete.includes(item.kapan));
+                                let prevCounter = 1;
+                                prevGroup.items.forEach(item => {
+                                    if (!item.is_subtotal) {
+                                        item.s_no = String(prevCounter++);
+                                    }
+                                });
+                                // Recalculate totals for previous date in memory
+                                recalculateTotalsForDate(prevD);
+                            }
+                        }
+                    }
+                }
+
+                recalculateGrandTotals(); // Recalculates, saves to LocalStorage, and updates view
+                renderStockCards(document.getElementById('search-bar') ? document.getElementById('search-bar').value : '');
+                
+                if (isMistake) {
+                    await showCustomDialog('alert', 'સફળ (Success)', "પસંદ કરેલા કાપણ ભૂલથી ઉમેરેલ તરીકે કાઢી નાખવામાં આવ્યા છે!");
+                } else {
+                    await showCustomDialog('alert', 'સફળ (Success)', "પસંદ કરેલા કાપણ સફળતાપૂર્વક કાઢી નાખવામાં આવ્યા છે!");
+                }
+            }
+        }
+
+        // Generate Cards & Tables (with 4 Columns: S.No, Kapan, Pieces, Carat)
+        const grid = document.getElementById('stock-grid');
+
+        function renderStockCards(filterText = '') {
+            grid.innerHTML = '';
+            let totalCardsRendered = 0;
+            const query = filterText.toLowerCase().trim();
+
+            stockData.groups.forEach(group => {
+                // Filter items
+                const matchedItems = group.items.filter(item => {
+                    if (!query) return true;
+                    return (item.kapan && item.kapan.toLowerCase().includes(query)) ||
+                           (item.s_no && item.s_no.toString().includes(query));
+                });
+
+                // Skip showing empty cards when searching
+                if (query && matchedItems.length === 0) return;
+
+                totalCardsRendered++;
+
+                // Compute sums
+                let groupPcs = 0;
+                let groupCarat = 0.0;
+                
+                matchedItems.forEach(item => {
+                    if (!item.is_subtotal) {
+                        const pcs = parseInt(item.pcs);
+                        const carat = parseFloat(item.carat);
+                        if (!isNaN(pcs)) groupPcs += pcs;
+                        if (!isNaN(carat)) groupCarat += carat;
+                    }
+                });
+
+                let showSubtotal = true;
+                let subPcs = groupPcs;
+                let subCarat = groupCarat;
+                let subLabel = 'Subtotal';
+
+                // Create stock card
+                const card = document.createElement('div');
+                card.className = 'stock-card';
+                
+                const safeId = group.name.replace(/[^a-zA-Z0-9-]/g, '_');
+                
+                let tableRows = '';
+                matchedItems.forEach(item => {
+                    if (!item.is_subtotal) {
+                        tableRows += `
+                            <tr class="kapan-row" data-group="${group.name.replace(/'/g, "\\'")}" data-kapan="${item.kapan.replace(/'/g, "\\'")}">
+                                <td style="text-align: center; width: 28px; padding: 2px 4px;">
+                                    <input type="checkbox" class="kapan-checkbox" onchange="updateBulkDeleteButton('${group.name.replace(/'/g, "\\'")}')" style="cursor: pointer; transform: scale(1.1);">
+                                </td>
+                                <td class="col-kapan">${item.kapan || '-'}</td>
+                                <td class="col-num col-pcs">${formatNumber(item.pcs)}</td>
+                                <td class="col-num col-cts">${formatCarat(item.carat)}</td>
+                                <td style="text-align: center; width: 24px; padding: 2px;">
+                                    <button onclick="deleteKapan('${group.name.replace(/'/g, "\\'")}', '${item.kapan.replace(/'/g, "\\'")}')" style="background: none; border: none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px; opacity: 0.6; transition: opacity 0.15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="કાપણ કાઢી નાખો">
+                                        <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                if (showSubtotal) {
+                    tableRows += `
+                        <tr class="subtotal-row">
+                            <td></td>
+                            <td class="col-kapan subtotal-label">${subLabel}</td>
+                            <td class="col-num col-pcs">${formatNumber(subPcs)}</td>
+                            <td class="col-num col-cts">${formatCarat(subCarat)}</td>
+                            <td></td>
+                        </tr>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="card-header-bar" id="card-header-${safeId}">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="group-title">${group.name}</div>
+                            <button onclick="openAddKapanForGroup('${group.name.replace(/'/g, "\\'")}')" style="background: none; border: none; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: opacity 0.15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8" title="આ ગ્રુપમાં Kapan ઉમેરો">
+                                <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
+                            </button>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="btn-bulk-delete" id="btn-bulk-delete-${safeId}" onclick="performBulkDelete('${group.name.replace(/'/g, "\\'")}')" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; align-items: center; gap: 4px; transition: background 0.15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+                                <i data-lucide="trash-2" style="width:12px;height:12px;"></i> કાઢી નાખો (<span class="bulk-count">0</span>)
+                            </button>
+                            <div class="group-badge-summary">${matchedItems.filter(i => !i.is_subtotal).length} Lots</div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="stock-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 28px; text-align: center; padding: 2px 4px;">
+                                        <input type="checkbox" class="select-all-kapan" onchange="toggleSelectAllKapan(this, '${group.name.replace(/'/g, "\\'")}')" style="cursor: pointer; transform: scale(1.1);">
+                                    </th>
+                                    <th>Kapan</th>
+                                    <th style="text-align: right;">Pcs (નંગ)</th>
+                                    <th style="text-align: right;">Carat (કેરેટ)</th>
+                                    <th style="width: 24px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            document.getElementById('no-results').style.display = (totalCardsRendered === 0) ? 'flex' : 'none';
+            
+            // Re-initialize Lucide Icons for dynamic trash buttons
+            lucide.createIcons();
+        }
+
+        // Setup Event Listeners
+        const searchInput = document.getElementById('search-bar');
+        searchInput.addEventListener('input', (e) => {
+            renderStockCards(e.target.value);
+        });
+
+        // Kapan Modal code
+        const modal = document.getElementById('modal-add-kapan');
+        const btnAdd = document.getElementById('btn-add-kapan');
+        const btnClose = document.getElementById('modal-close');
+        const formAdd = document.getElementById('form-add-kapan');
+        const selectGroup = document.getElementById('input-group');
+        const modalError = document.getElementById('modal-error');
+
+        // Instant validation for Kapan input based on selected group prefix
+        const inputKapan = document.getElementById('input-kapan');
+        function validateKapanInstant() {
+            if (!inputKapan || !selectGroup || !modalError) return;
+            const selectedGroupName = selectGroup.value;
+            const kapan = inputKapan.value.trim();
+            const submitBtn = formAdd.querySelector('button[type="submit"]');
+
+            if (!selectedGroupName || !kapan) {
+                modalError.style.display = 'none';
+                inputKapan.style.borderColor = '#cbd5e1';
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+
+            const groupPrefix = selectedGroupName.split(' ')[0].trim();
+            if (!kapan.toLowerCase().startsWith(groupPrefix.toLowerCase())) {
+                modalError.innerHTML = '⚠️ આ ગ્રુપમાં માત્ર <span style="color:#002d62;font-weight:700;">' + groupPrefix + '</span> થી શરૂ થતો જ કાપણ નંબર ઉમેરી શકાશે!';
+                modalError.style.display = 'block';
+                inputKapan.style.borderColor = '#dc2626';
+                if (submitBtn) submitBtn.disabled = true;
+            } else {
+                modalError.style.display = 'none';
+                inputKapan.style.borderColor = '#cbd5e1';
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }
+        if (inputKapan) {
+            inputKapan.addEventListener('input', validateKapanInstant);
+        }
+
+        // Search group dropdown variables
+        const groupSearchMenu = document.getElementById('group-search-menu');
+        const groupSearchInput = document.getElementById('group-search-input');
+        const groupSearchList = document.getElementById('group-search-list');
+        const btnOpenGroupSearch = document.getElementById('btn-open-group-search');
+        const btnCloseGroupSearch = document.getElementById('btn-close-group-search');
+        const inputGroup = document.getElementById('input-group');
+        const btnAddNewPartyRow = document.getElementById('btn-add-new-party-row');
+
+        function openGroupSearchMenu() {
+            if (groupSearchMenu) {
+                groupSearchMenu.style.display = 'flex';
+                groupSearchInput.value = '';
+                renderGroupSearchList('');
+                setTimeout(() => {
+                    if (groupSearchInput) groupSearchInput.focus();
+                }, 50);
+            }
+        }
+
+        function closeGroupSearchMenu() {
+            if (groupSearchMenu) {
+                groupSearchMenu.style.display = 'none';
+            }
+        }
+
+        if (btnOpenGroupSearch) {
+            btnOpenGroupSearch.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openGroupSearchMenu();
+            });
+        }
+        if (inputGroup) {
+            inputGroup.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openGroupSearchMenu();
+            });
+        }
+        if (groupSearchMenu) {
+            groupSearchMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+        if (btnCloseGroupSearch) {
+            btnCloseGroupSearch.addEventListener('click', closeGroupSearchMenu);
+        }
+        if (btnAddNewPartyRow) {
+            btnAddNewPartyRow.addEventListener('click', () => {
+                closeGroupSearchMenu();
+                openAddGroupModal();
+            });
+        }
+
+        function renderGroupSearchList(query = '') {
+            if (!groupSearchList) return;
+            const items = groupSearchList.querySelectorAll('.group-search-item');
+            items.forEach(el => el.remove());
+
+            const lowercaseQuery = query.toLowerCase().trim();
+
+            stockData.groups.forEach(g => {
+                if (lowercaseQuery && !g.name.toLowerCase().includes(lowercaseQuery)) {
+                    return;
+                }
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'group-search-item';
+                itemDiv.style.cssText = "padding: 4px 12px; font-size: 0.8rem; font-weight: 600; color: #334155; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.1s;";
+                itemDiv.innerText = g.name;
+
+                itemDiv.onmouseover = () => itemDiv.style.background = '#f1f5f9';
+                itemDiv.onmouseout = () => itemDiv.style.background = 'transparent';
+
+                itemDiv.onclick = () => {
+                    inputGroup.value = g.name;
+                    closeGroupSearchMenu();
+                    validateKapanInstant();
+                    setTimeout(() => {
+                        const kInput = document.getElementById('input-kapan');
+                        if (kInput) kInput.focus();
+                    }, 50);
+                };
+
+                groupSearchList.appendChild(itemDiv);
+            });
+            lucide.createIcons();
+        }
+
+        if (groupSearchInput) {
+            groupSearchInput.addEventListener('input', (e) => {
+                renderGroupSearchList(e.target.value);
+            });
+
+            groupSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const firstItem = groupSearchList.querySelector('.group-search-item');
+                    if (firstItem) {
+                        firstItem.click();
+                    }
+                }
+            });
+        }
+
+        // Stub dropdown populate helper
+        function populateGroupDropdown() {
+            // Custom search is auto-populated dynamically
+        }
+
+        // Open Add Kapan Modal pre-filled with the specified group name
+        function openAddKapanForGroup(groupName) {
+            const modal = document.getElementById('modal-add-kapan');
+            const modalError = document.getElementById('modal-error');
+            const inputGroup = document.getElementById('input-group');
+            
+            if (modal && inputGroup) {
+                resetModalPosition('modal-add-kapan-content');
+                modal.style.display = 'flex';
+                modalError.style.display = 'none';
+                inputGroup.value = groupName;
+                closeGroupSearchMenu(); // Close search party dropdown just in case
+                validateKapanInstant();
+                
+                // Focus on the Kapan input after modal animation/display
+                setTimeout(() => {
+                    const kInput = document.getElementById('input-kapan');
+                    if (kInput) {
+                        kInput.focus();
+                        kInput.select();
+                    }
+                }, 50);
+            }
+        }
+
+        if (btnAdd) {
+            btnAdd.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetModalPosition('modal-add-kapan-content');
+                modal.style.display = 'flex';
+                modalError.style.display = 'none';
+                
+                if (inputGroup) inputGroup.value = '';
+                if (inputKapan) inputKapan.value = '';
+                const inputPcs = document.getElementById('input-pcs');
+                if (inputPcs) inputPcs.value = '';
+                const inputCarat = document.getElementById('input-carat');
+                if (inputCarat) inputCarat.value = '';
+                validateKapanInstant();
+                
+                // Automatically open ERP-style Search Party menu
+                openGroupSearchMenu();
+            });
+        }
+
+        // Draggable Popups / Modals logic
+        function makeElementDraggable(dragHeaderId, dragContentId) {
+            const dragHeader = document.getElementById(dragHeaderId);
+            const dragContent = document.getElementById(dragContentId);
+            if (!dragHeader || !dragContent) return;
+
+            let startX = 0, startY = 0;
+            let translateX = 0, translateY = 0;
+
+            dragHeader.addEventListener('mousedown', dragStart);
+
+            function dragStart(e) {
+                if (e.button !== 0) return; // Only drag with left click
+                
+                // Don't drag if clicked on interactive elements
+                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
+                    return;
+                }
+
+                e.preventDefault();
+
+                startX = e.clientX;
+                startY = e.clientY;
+                translateX = parseFloat(dragContent.dataset.translateX) || 0;
+                translateY = parseFloat(dragContent.dataset.translateY) || 0;
+                
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', dragEnd);
+            }
+
+            function drag(e) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                const newX = translateX + dx;
+                const newY = translateY + dy;
+
+                dragContent.style.transform = `translate(${newX}px, ${newY}px)`;
+                dragContent.dataset.translateX = newX;
+                dragContent.dataset.translateY = newY;
+            }
+
+            function dragEnd() {
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', dragEnd);
+            }
+        }
+
+        function resetModalPosition(dragContentId) {
+            const dragContent = document.getElementById(dragContentId);
+            if (dragContent) {
+                dragContent.style.transform = "translate(0px, 0px)";
+                dragContent.dataset.translateX = "0";
+                dragContent.dataset.translateY = "0";
+            }
+        }
+
+        // Initialize dragging for both modals
+        makeElementDraggable('modal-add-kapan-header', 'modal-add-kapan-content');
+        makeElementDraggable('modal-add-group-header', 'modal-add-group-content');
+
+        if (btnClose) {
+            btnClose.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // Group Modal Controls
+        const modalGroup = document.getElementById('modal-add-group');
+        const btnAddGroup = document.getElementById('btn-add-group');
+        const btnGroupClose = document.getElementById('modal-group-close');
+        const formAddGroup = document.getElementById('form-add-group');
+        const modalGroupError = document.getElementById('modal-group-error');
+
+        if (btnAddGroup) {
+            btnAddGroup.addEventListener('click', () => {
+                openAddGroupModal();
+            });
+        }
+
+        if (btnGroupClose) {
+            btnGroupClose.addEventListener('click', () => {
+                modalGroup.style.display = 'none';
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+            if (e.target === modalGroup) {
+                modalGroup.style.display = 'none';
+            }
+            // Close search menu if clicked outside
+            if (typeof groupSearchMenu !== 'undefined' && groupSearchMenu && groupSearchMenu.style.display === 'flex' && 
+                !groupSearchMenu.contains(e.target) && 
+                e.target !== inputGroup && 
+                e.target !== btnOpenGroupSearch && 
+                !btnOpenGroupSearch.contains(e.target)) {
+                closeGroupSearchMenu();
+            }
+        });
+
+        // Save New Group to LocalStorage
+        if (formAddGroup) {
+            formAddGroup.addEventListener('submit', (e) => {
+                e.preventDefault();
+                ensureActiveDateIsToday(); // Auto-switch to today!
+                modalGroupError.style.display = 'none';
+                
+
+                const groupName = document.getElementById('input-group-name').value.trim();
+
+                // Check if group already exists
+                const exists = stockData.groups.some(g => g.name.toLowerCase() === groupName.toLowerCase());
+                if (exists) {
+                    modalGroupError.innerText = "આ ગ્રુપ નંબર પહેલેથી અસ્તિત્વમાં છે!";
+                    modalGroupError.style.display = 'block';
+                    return;
+                }
+
+                const newGroup = {
+                    name: groupName,
+                    items: [],
+                    subtotals: []
+                };
+
+                stockData.groups.push(newGroup);
+                // Sort the groups naturally
+                stockData.groups.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+                recalculateGrandTotals(); // Recalculates and saves to LocalStorage
+                populateGroupDropdown();
+                renderMasterGroupTable(); // Refresh table view immediately
+                
+                // Keep modal open, reset only, and refocus for consecutive entries!
+                formAddGroup.reset();
+                setTimeout(() => {
+                    const input = document.getElementById('input-group-name');
+                    if (input) input.focus();
+                }, 50);
+                
+                renderStockCards(searchInput.value);
+            });
+        }
+
+        // Save New Kapan to LocalStorage
+        if (formAdd) {
+            formAdd.addEventListener('submit', (e) => {
+                e.preventDefault();
+                ensureActiveDateIsToday(); // Auto-switch to today!
+                modalError.style.display = 'none';
+                
+
+                const selectedGroupName = selectGroup.value;
+                const kapan = document.getElementById('input-kapan').value.trim();
+                const pcsVal = document.getElementById('input-pcs').value.trim();
+                const caratVal = document.getElementById('input-carat').value.trim();
+
+                // 1. Kapan No. Validation (Only numbers and dashes)
+                if (!/^[0-9\-]+$/.test(kapan)) {
+                    modalError.innerHTML = '⚠️ કાપણ નંબરમાં ફક્ત <span style="color:#002d62;font-weight:700;">આંકડા (0-9)</span> અને <span style="color:#002d62;font-weight:700;">ડેશ (-)</span> જ લખી શકાશે! (દા.ત. 867-13)';
+                    modalError.style.display = 'block';
+                    const inputK = document.getElementById('input-kapan');
+                    if (inputK) { inputK.focus(); inputK.select(); }
+                    return;
+                }
+
+                // 2. Raw Pieces Validation (Only digits)
+                if (!/^\d+$/.test(pcsVal)) {
+                    modalError.innerHTML = '⚠️ કાચા નંગમાં ફક્ત <span style="color:#002d62;font-weight:700;">નંબરો (આંકડા)</span> જ લખી શકાશે! કોઈ પોઇન્ટ કે ચિહ્ન ચાલશે નહીં.';
+                    modalError.style.display = 'block';
+                    const inputP = document.getElementById('input-pcs');
+                    if (inputP) { inputP.focus(); inputP.select(); }
+                    return;
+                }
+
+                // 3. Raw Carat Validation (Only digits and dot)
+                if (!/^\d+(\.\d+)?$/.test(caratVal)) {
+                    modalError.innerHTML = '⚠️ કાચા કેરેટમાં ફક્ત <span style="color:#002d62;font-weight:700;">આંકડા</span> અને <span style="color:#002d62;font-weight:700;">પોઇન્ટ (.)</span> જ લખી શકાશે! (દા.ત. 225.43)';
+                    modalError.style.display = 'block';
+                    const inputC = document.getElementById('input-carat');
+                    if (inputC) { inputC.focus(); inputC.select(); }
+                    return;
+                }
+
+                const pcs = parseInt(pcsVal);
+                const carat = parseFloat(caratVal);
+
+                const group = stockData.groups.find(g => g.name === selectedGroupName);
+                if (!group) {
+                    modalError.innerText = "ગ્રુપ મળ્યું નથી!";
+                    modalError.style.display = 'block';
+                    return;
+                }
+
+                // Validate that Kapan No starts with the group prefix (first word)
+                const groupPrefix = selectedGroupName.split(' ')[0].trim();
+                if (!kapan.toLowerCase().startsWith(groupPrefix.toLowerCase())) {
+                    modalError.innerHTML = '⚠️ આ ગ્રુપમાં માત્ર <span style="color:#002d62;font-weight:700;">' + groupPrefix + '</span> થી શરૂ થતો જ કાપણ નંબર ઉમેરી શકાશે!';
+                    modalError.style.display = 'block';
+                    const kapanInput = document.getElementById('input-kapan');
+                    if (kapanInput) { kapanInput.focus(); kapanInput.select(); }
+                    return;
+                }
+
+                                // Duplicate Kapan check - same number cannot be added twice in same group
+                const isDuplicate = group.items.some(item =>
+                    !item.is_subtotal && item.kapan && item.kapan.trim().toLowerCase() === kapan.toLowerCase()
+                );
+                if (isDuplicate) {
+                    modalError.innerHTML = '<span style="color:#dc2626;font-weight:700;">⚠️ આ Kapan No. <b>' + kapan + '</b> પહેલેથી જ આ ગ્રુપમાં જમા છે! બીજો નંબર વાપરો.</span>';
+                    modalError.style.display = 'block';
+                    const kapanInput = document.getElementById('input-kapan');
+                    if (kapanInput) { kapanInput.focus(); kapanInput.select(); }
+                    return;
+                }
+
+// Determine new Serial number (items count + 1)
+                const newSno = String(group.items.filter(item => !item.is_subtotal).length + 1);
+
+                const newItem = {
+                    s_no: newSno,
+                    kapan: kapan,
+                    pcs: pcs,
+                    carat: carat,
+                    is_subtotal: false
+                };
+
+                group.items.push(newItem);
+                recalculateGrandTotals(); // Recalculates and saves to LocalStorage
+                
+                // Keep modal open, reset only Kapan, Pieces, and Carat (keep Group selected for fast entry!)
+                document.getElementById('input-kapan').value = '';
+                document.getElementById('input-pcs').value = '';
+                document.getElementById('input-carat').value = '';
+                
+                setTimeout(() => {
+                    const input = document.getElementById('input-kapan');
+                    if (input) input.focus();
+                }, 50);
+                
+                renderStockCards(searchInput.value);
+            });
+        }
+
+        // Backup download logic (backups all dates!)
+        function downloadBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(multiData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Galaxy_Stock_Backup_ALL_DATES_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Trigger restore file dialogue
+        function triggerRestore() {
+            document.getElementById('file-restore').click();
+        }
+
+        // Load backup from file
+        function restoreBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (parsedData && parsedData.dates && parsedData.active_date) {
+                        multiData = parsedData;
+                        db.ref(DB_PATH).set(JSON.parse(JSON.stringify(multiData)));
+                        syncStockDataReference();
+                        recalculateGrandTotals();
+                        populateGroupDropdown();
+                        initDatePicker();
+                        renderStockCards();
+                        await showCustomDialog('alert', 'સફળ (Success)', "બધા જ દિવસોનો ડેટા સક્સેસફુલી લોડ થઈ ગયો છે!");
+                        window.location.reload();
+                    } else {
+                        if (parsedData && parsedData.groups) {
+                            multiData = {
+                                active_date: _todayKey,
+                                dates: {
+                                    [_todayKey]: parsedData
+                                }
+                            };
+                            db.ref(DB_PATH).set(JSON.parse(JSON.stringify(multiData)));
+                            syncStockDataReference();
+                            recalculateGrandTotals();
+                            populateGroupDropdown();
+                            initDatePicker();
+                            renderStockCards();
+                            await showCustomDialog('alert', 'સફળ (Success)', "જૂનો બેકઅપ સફળતાપૂર્વક લોડ થઈ ગયો છે!");
+                            window.location.reload();
+                        } else {
+                            await showCustomDialog('alert', 'ભૂલ (Error)', "ખોટી બેકઅપ ફાઇલ! કૃપા કરીને સાચી ફાઇલ અપલોડ કરો.");
+                        }
+                    }
+                } catch(err) {
+                    await showCustomDialog('alert', 'ભૂલ (Error)', "ફાઈલ વાંચવામાં ભૂલ આવી છે!");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Date Picker initialization and change handling
+        const datePicker = document.getElementById('header-date-picker');
+        function initDatePicker() {
+            if (!datePicker) return;
+            const activeDate = multiData.active_date || getTodayKey();
+            datePicker.value = activeDate;
+            // Update the dashboard header-date display
+            const parts = activeDate.split('-');
+            if (parts.length === 3) {
+                const headerDate = document.getElementById('header-date');
+                if (headerDate) headerDate.textContent = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
         }
         
-        let filename = document.getElementById('filename-input').value.trim();
-        if (!filename) {
-            filename = "Final_Modified_PDF";
+
+        if (datePicker) {
+            datePicker.addEventListener('change', (e) => {
+                const newDate = e.target.value;
+                if (!newDate) return;
+
+                // Validate date range to prevent typos like year 212026
+                const parts = newDate.split('-');
+                if (parts.length !== 3 || parts[0].length !== 4) {
+                    showCustomDialog('alert', 'ખોટી તારીખ (Invalid Date)', 'કૃપા કરીને સાચી તારીખ અને વર્ષ દાખલ કરો!');
+                    datePicker.value = multiData.active_date;
+                    return;
+                }
+                const year = parseInt(parts[0]);
+                if (year < 2020 || year > 2035) {
+                    showCustomDialog('alert', 'ખોટી તારીખ (Invalid Date)', 'વર્ષ ૨૦૨૦ અને ૨૦૩૫ ની વચ્ચે હોવું જોઈએ!');
+                    datePicker.value = multiData.active_date;
+                    return;
+                }
+
+                const oldDate = multiData.active_date;
+                saveToLocal();
+
+                multiData.active_date = newDate;
+
+                if (!multiData.dates[newDate]) {
+                    // Carry forward the stock by cloning closest previous date
+                    const clonedData = getClonedDataForDate(newDate);
+                    clonedData.date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    multiData.dates[newDate] = clonedData;
+                }
+
+                syncStockDataReference();
+                saveToLocal();
+
+                updateKPIs();
+                renderStockCards(document.getElementById('search-bar') ? document.getElementById('search-bar').value : '');
+                
+                // If report view is active, update the report
+                if (document.getElementById('view-report').style.display === 'flex') {
+                    renderDailyReport();
+                }
+                
+                const displayD = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                // Update dashboard header-date
+
+                showCustomDialog('alert', 'ડેટા લોડ (Data Loaded)', `તારીખ ${displayD} નો ડેટા લોડ થયો છે!`);
+            });
         }
-        
-        if (!filename.toLowerCase().endsWith('.pdf')) {
-            filename += '.pdf';
-        }
-        
-        const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        
-        if (isIOS) {
-            link.target = "_blank";
-        }
-        
-        document.body.appendChild(link);
-        link.click();
-        
-        // Clean up DOM and URL
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-        
-        updateStatus("FILE COMPILATION COMPLETED", "ready");
-    }
 
-    // Drag & Drop Handling
-    const uploadZone = document.getElementById('upload-zone');
+        // Render stock view on first load
+        renderStockCards();
 
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, preventDefaults, false);
-    });
+        // Init icons
+        lucide.createIcons();
 
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
+        // Prevent background scrolling when modals or dialogs are open
+        const observer = new MutationObserver(() => {
+            const isKapanOpen = modal && modal.style.display === 'flex';
+            const isGroupOpen = modalGroup && modalGroup.style.display === 'flex';
+            const isDialogOpen = dialogOverlay && dialogOverlay.style.display === 'flex';
+            
+            if (isKapanOpen || isGroupOpen || isDialogOpen) {
+                document.body.classList.add('modal-open');
+            } else {
+                document.body.classList.remove('modal-open');
+            }
+        });
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, highlight, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, unhighlight, false);
-    });
-
-    function highlight(e) {
-        uploadZone.classList.add('drag-over');
-    }
-
-    function unhighlight(e) {
-        uploadZone.classList.remove('drag-over');
-    }
-
-    uploadZone.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files.length > 0) {
-            handleFile(files[0]);
-        }
-    }
-</script>
-
+        if (modal) observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
+        if (modalGroup) observer.observe(modalGroup, { attributes: true, attributeFilter: ['style'] });
+        if (dialogOverlay) observer.observe(dialogOverlay, { attributes: true, attributeFilter: ['style'] });
+    </script>
 </body>
 </html>
